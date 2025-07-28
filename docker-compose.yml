@@ -1,0 +1,109 @@
+# Docker Compose para Rafflio
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: rafflio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rafflio
+      POSTGRES_USER: rafflio_user
+      POSTGRES_PASSWORD: rafflio_password_2024
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - rafflio-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rafflio_user -d rafflio"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis para cache y sesiones
+  redis:
+    image: redis:7-alpine
+    container_name: rafflio-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rafflio-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Aplicación Rafflio
+  rafflio-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rafflio-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Base de datos
+      DATABASE_URL: "postgresql://rafflio_user:rafflio_password_2024@postgres:5432/rafflio?schema=public"
+      
+      # Redis
+      REDIS_URL: "redis://redis:6379"
+      
+      # NextAuth
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "rafflio-super-secret-key-2024"
+      
+      # MercadoPago
+      MERCADOPAGO_ACCESS_TOKEN: "TEST-1234567890-123456-abcdef123456789-12345678"
+      MERCADOPAGO_PUBLIC_KEY: "TEST-12345678-1234-1234-1234-123456789012"
+      
+      # Email (Resend)
+      RESEND_API_KEY: "re_123456789_abcdefghijklmnopqrstuvwxyz"
+      
+      # Aplicación
+      NEXT_PUBLIC_BASE_URL: "http://localhost:3000"
+      NODE_ENV: "production"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - rafflio-network
+    volumes:
+      - ./uploads:/app/uploads
+
+  # Nginx como proxy reverso (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: rafflio-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - rafflio-app
+    networks:
+      - rafflio-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  rafflio-network:
+    driver: bridge
