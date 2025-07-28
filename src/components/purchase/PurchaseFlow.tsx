@@ -89,7 +89,6 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
         
         await updatePurchasePreferenceId(purchase.id, preference.id);
         
-        
         // Modo producción - redirigir a MercadoPago
         console.log('🚀 Redirigiendo a MercadoPago:', preference.init_point);
         console.log('preference ID:', preferenceId);
