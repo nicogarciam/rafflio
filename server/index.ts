@@ -17,13 +17,6 @@ app.use(cors());
 app.use(express.json());
 
 const mercadoPagoClient = new MercadoPagoConfig({
-  // VITE_MERCADOPAGO_PUBLIC_KEY=APP_USR-4fa3ef4f-70d8-45db-aa97-ac7b0fc05d27
-  // VITE_MERCADOPAGO_ACCESS_TOKEN=APP_USR-6958464165073805-072722-dffa7624373c744d9d4916c33aa627bb-1229051365
-  
-  // Vendedor Prueba
-  // accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || 'APP_USR-6958464165073805-072722-dffa7624373c744d9d4916c33aa627bb-1229051365',
-  // publicKey: 'APP_USR-4fa3ef4f-70d8-45db-aa97-ac7b0fc05d27',
-  // Vendedor ngarciam
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || 'TEST-4372544405719279-072718-112f9982981a5c01b708c1f17bc9101e-54486551',
   options: { timeout: 5000 }
 });
@@ -31,11 +24,14 @@ const preference = new Preference(mercadoPagoClient);
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
+const PORT = process.env.PORT || 4000;
+const baseUrl = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
+// Almacena conexiones por purchaseId
+const purchaseSockets = new Map();
+
 app.post('/api/payment/create-preference', async (req: Request, res: Response) => {
   try {
     const paymentData = req.body;
-    const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
-
     const preferenceData = paymentData;
 
     const response = await preference.create({ body: preferenceData });
@@ -118,8 +114,7 @@ const io = new Server(server, {
   }
 });
 
-// Almacena conexiones por purchaseId
-const purchaseSockets = new Map();
+
 
 // Cuando un cliente se conecta
 io.on('connection', (socket: Socket) => {
@@ -195,8 +190,7 @@ app.post('/api/payment/webhook', async (req: Request, res: Response) => {
   }
 });
 
-const PORT = process.env.PORT || 4000;
-const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
+
 
 server.listen(PORT, () => {
   console.log(`Backend HTTPS + WebSocket listening on ${baseUrl}:${PORT}`);
