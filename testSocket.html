@@ -10,7 +10,7 @@
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
-    const socket = io('http://localhost:4000'); // Cambia a tu URL de Railway en producción
+    const socket = io('https://rafflio-server-production.up.railway.app'); // Cambia a tu URL de Railway en producción
 
     socket.on('nuevo_mensaje', (data) => {
       const chat = document.getElementById('chat');
