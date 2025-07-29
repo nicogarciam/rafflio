@@ -22,12 +22,18 @@ const mercadoPagoClient = new MercadoPagoConfig({
 });
 const preference = new Preference(mercadoPagoClient);
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const supabaseUrl = process.env.SUPABASE_URL || 'https://lekpcbbrmbiltrrgqgmh.supabase.co';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxla3BjYmJybWJpbHRycmdxZ21oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2NTA4NzYsImV4cCI6MjA2OTIyNjg3Nn0.A7Bpmv3PiZG_eh8AQdNGrHSZhO6MDYdLkcKRp03MVtY';
+console.log(`supabaseUrl ${supabaseUrl}`);
+console.log(`supabaseAnonKey ${supabaseAnonKey}`);
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const PORT = process.env.PORT || 4000;
 const baseUrl = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 // Almacena conexiones por purchaseId
 const purchaseSockets = new Map();
+
 
 app.post('/api/payment/create-preference', async (req: Request, res: Response) => {
   try {
@@ -193,5 +199,5 @@ app.post('/api/payment/webhook', async (req: Request, res: Response) => {
 
 
 server.listen(PORT, () => {
-  console.log(`Backend HTTPS + WebSocket listening on ${baseUrl}:${PORT}`);
+  console.log(`Backend HTTPS + WebSocket listening on ${baseUrl}`);
 });
