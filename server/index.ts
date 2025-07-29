@@ -54,6 +54,7 @@ app.post('/api/payment/create-preference', async (req: Request, res: Response) =
   }
 });
 
+
 app.post('/api/payment/payment-info', async (req: Request, res: Response) => {
   try {
     const { paymentId } = req.body;
@@ -198,6 +199,6 @@ app.post('/api/payment/webhook', async (req: Request, res: Response) => {
 
 
 
-server.listen(PORT, () => {
+server.listen(PORT,"0.0.0.0", () => {
   console.log(`Backend HTTPS + WebSocket listening on ${baseUrl}`);
 });
