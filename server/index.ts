@@ -1,4 +1,6 @@
 import { Payment } from "mercadopago";
+// Endpoint de webhook de MercadoPago
+import { Request, Response } from 'express';
 
 const fs = require('fs');
 const https = require('https');
@@ -6,6 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const { MercadoPagoConfig, Preference } = require('mercadopago');
 const { Server } = require('socket.io');
+import type { Socket } from 'socket.io';
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
@@ -28,7 +31,7 @@ const preference = new Preference(mercadoPagoClient);
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-app.post('/api/payment/create-preference', async (req, res) => {
+app.post('/api/payment/create-preference', async (req: Request, res: Response) => {
   try {
     const paymentData = req.body;
     const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
@@ -49,7 +52,7 @@ app.post('/api/payment/create-preference', async (req, res) => {
   }
 });
 
-app.post('/api/payment/payment-info', async (req, res) => {
+app.post('/api/payment/payment-info', async (req: Request, res: Response) => {
   try {
     const { paymentId } = req.body;
     if (!paymentId) {
@@ -77,7 +80,7 @@ app.post('/api/payment/payment-info', async (req, res) => {
   }
 });
 
-app.post('/api/payment/create', async (req, res) => {
+app.post('/api/payment/create', async (req: Request, res: Response) => {
   try {
     const { paymentId } = req.body;
     if (!paymentId) {
@@ -96,7 +99,7 @@ app.post('/api/payment/create', async (req, res) => {
 
 
 
-app.get('/api/test', async (req, res) => { 
+app.get('/api/test', async (req: Request, res: Response) => { 
   res.json({ message: 'API is working!' });
 });
 
@@ -119,8 +122,8 @@ const io = new Server(server, {
 const purchaseSockets = new Map();
 
 // Cuando un cliente se conecta
-io.on('connection', (socket) => {
-  socket.on('subscribePurchase', (purchaseId) => {
+io.on('connection', (socket: Socket) => {
+  socket.on('subscribePurchase', (purchaseId: string) => {
     purchaseSockets.set(purchaseId, socket.id);
   });
   socket.on('disconnect', () => {
@@ -134,8 +137,9 @@ io.on('connection', (socket) => {
   });
 });
 
-// Endpoint de webhook de MercadoPago
-app.post('/api/payment/webhook', async (req, res) => {
+
+
+app.post('/api/payment/webhook', async (req: Request, res: Response) => {
   const { data, type } = req.body;
   console.log('SERVER: Webhook received:', type, data);
 
@@ -143,7 +147,7 @@ app.post('/api/payment/webhook', async (req, res) => {
     // 1. Consultar el estado real del pago en MercadoPago
     const paymentId = data.id;
     const payment = await mercadoPagoClient.get(`/v1/payments/${paymentId}`);
-    const status = payment.body.status; // 'approved', 'rejected', etc.
+    const paymentStatus = payment.body.status; // 'approved', 'rejected', etc.
     const preferenceId = payment.body.preference_id;
     const purchaseId = payment.body.external_reference;
 
@@ -168,7 +172,7 @@ app.post('/api/payment/webhook', async (req, res) => {
     // 3. Actualizar el estado de la compra en Supabase
     const { error: updateError } = await supabase
       .from('purchases')
-      .update({ status: status, paymentId: paymentId })
+      .update({ status: paymentStatus, paymentId: paymentId })
       .eq('id', purchase.id);
 
     if (updateError) {
@@ -180,7 +184,7 @@ app.post('/api/payment/webhook', async (req, res) => {
     if (purchaseSockets.has(purchase.id)) {
       io.to(purchaseSockets.get(purchase.id)).emit('paymentUpdate', {
         purchaseId: purchase.id,
-        status: status
+        status: paymentStatus
       });
     }
 
@@ -192,6 +196,8 @@ app.post('/api/payment/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 4000;
+const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
+
 server.listen(PORT, () => {
-  console.log(`Backend HTTPS + WebSocket listening on https://localhost:${PORT}`);
+  console.log(`Backend HTTPS + WebSocket listening on ${baseUrl}:${PORT}`);
 });
