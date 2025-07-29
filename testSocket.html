@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cliente Socket.io</title>
+</head>
+<body>
+  <input type="text" id="mensaje" placeholder="Escribe un mensaje">
+  <button onclick="enviarMensaje()">Enviar</button>
+  <ul id="chat"></ul>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io('http://localhost:4000'); // Cambia a tu URL de Railway en producción
+
+    socket.on('nuevo_mensaje', (data) => {
+      const chat = document.getElementById('chat');
+      const li = document.createElement('li');
+      li.textContent = `${data.usuario}: ${data.texto} (${data.fecha})`;
+      chat.appendChild(li);
+    });
+
+    socket.on('paymentUpdate', (data) => {
+      const chat = document.getElementById('chat');
+      const li = document.createElement('li');
+      li.textContent = `paymentUpdate - ${data.purchaseId}: ${data.status}`;
+      chat.appendChild(li);
+    });
+
+    function enviarMensaje() {
+      const input = document.getElementById('mensaje');
+      socket.emit('mensaje_chat', {
+        usuario: "Anónimo",
+        texto: input.value
+      });
+      input.value = '';
+    }
+  </script>
+</body>
+</html>
