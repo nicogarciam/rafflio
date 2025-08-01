@@ -23,15 +23,15 @@ export const config = {
   validate() {
     const errors: string[] = [];
 
-    if (!this.supabase.url || this.supabase.url === 'https://your-project-id.supabase.co') {
+    if (!this.supabase.url) {
       errors.push('VITE_SUPABASE_URL is required - Please configure your Supabase URL');
     }
 
-    if (!this.supabase.anonKey || this.supabase.anonKey === 'your_supabase_anon_key_here') {
+    if (!this.supabase.anonKey) {
       errors.push('VITE_SUPABASE_ANON_KEY is required - Please configure your Supabase anon key');
     }
 
-    if (!this.mercadopago.accessToken || this.mercadopago.accessToken === 'your_mercadopago_access_token_here') {
+    if (!this.mercadopago.accessToken) {
       errors.push('VITE_MERCADOPAGO_ACCESS_TOKEN is required - Please configure your MercadoPago access token');
     }
 
@@ -45,18 +45,16 @@ export const config = {
     }
   },
 
-  // Verificar si estamos en desarrollo
-  isDevelopment: import.meta.env.DEV,
-  
+  // Verificar si estamos en desarrollo: permite override con VITE_FORCE_DEV
+  isDevelopment: (import.meta.env.VITE_FORCE_DEV === 'true') || import.meta.env.DEV,
+
   // Verificar si estamos en producción
   isProduction: import.meta.env.PROD,
 
   // Verificar si las variables están configuradas
   isConfigured() {
-    return this.supabase.url && 
-           this.supabase.url !== 'https://your-project-id.supabase.co' &&
-           this.supabase.anonKey && 
-           this.supabase.anonKey !== 'your_supabase_anon_key_here';
+    return this.supabase.url &&
+      this.supabase.anonKey;
   }
 };
 

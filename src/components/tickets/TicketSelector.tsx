@@ -1,31 +1,197 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { useRaffle } from '../../contexts/RaffleContext';
-import { CheckCircle, Circle, Lock, Sparkles, Mail } from 'lucide-react';
+import { CheckCircle, Circle, Lock, Sparkles, Mail, Wallet } from 'lucide-react';
+import { mercadoPagoService } from '../../services/mercadopago';
+import { Purchase, Ticket } from '../../types';
+import { JSX } from 'react/jsx-runtime';
 
 interface TicketSelectorProps {
   purchaseId: string;
+  paymentInfo?: {
+    payment_id?: string;
+    status?: string;
+    external_reference?: string;
+    merchant_order_id?: string;
+  };
   onClose: () => void;
 }
 
-export const TicketSelector: React.FC<TicketSelectorProps> = ({ purchaseId, onClose }) => {
-  const { purchases, getRaffleById, updateTickets } = useRaffle();
+export const TicketSelector: React.FC<TicketSelectorProps> = ({
+  purchaseId, paymentInfo, onClose }) => {
+  const { getPurchaseById, getRaffleById, updateTickets, updatePurchaseStatus } = useRaffle();
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(true);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [purchase, setPurchase] = useState<Purchase | null>(null);
+  const [countdown, setCountdown] = useState(10);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [failedPaymentValidation, setFailedPaymentValidation] = useState(false);
+  const [preferenceInitPoint, setPreferenceInitPoint] = useState<string | null>(null);
+  const [showPreference, setShowPreference] = useState(false);
+  const [preferenceError, setPreferenceError] = useState<string | null>(null);
+  const [validationType, setValidationType] = useState<string>('');
+  const [validationStep, setValidationStep] = useState<string>('');
 
-  const purchase = purchases.find(p => p.id === purchaseId);
   const raffle = purchase ? getRaffleById(purchase.raffleId) : null;
   const priceTier = raffle?.priceTiers.find(t => t.id === purchase?.priceTierId);
 
   const maxSelections = priceTier?.ticketCount || 0;
 
-  const handleNumberClick = (number: number) => {
-    if (selectedNumbers.includes(number)) {
-      setSelectedNumbers(selectedNumbers.filter(n => n !== number));
+  useEffect(() => {
+    let verificationTimer: NodeJS.Timeout;
+    let countdownTimer: NodeJS.Timeout;
+    let attempts = 0;
+    let stopPolling = false;
+
+    const fetchPurchaseAndPayment = async () => {
+      setIsVerifying(true);
+      setPaymentError(null);
+      try {
+        // 1. Consultar purchase
+        setValidationType('Consultando compra...');
+        setValidationStep('Buscando la compra en la base de datos');
+        console.log(`🔍 Consultando compra con ID: ${purchaseId}`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const p = await getPurchaseById(purchaseId);
+        if (!p) {
+          setPaymentError('No se encontró la compra solicitada');
+          stopPolling = true;
+          setIsVerifying(false);
+          return;
+        }
+        setPurchase(p);
+        // Si la compra ya está confirmada, mostrar mensaje y no permitir continuar
+        if (p.status === 'confirmed') {
+          setSelectedNumbers(p.tickets?.map(t => t.number) || []);
+          setValidationType('Números ya seleccionados');
+          setValidationStep('Ya has confirmado tus números para esta compra.');
+          setIsVerifying(false);
+          stopPolling = true;
+          return;
+        }
+        setValidationType('Compra encontrada');
+        setValidationStep('¡La compra fue encontrada correctamente!');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setValidationType('Validando el pago con MercadoPago');
+        setValidationStep('Iniciando validación con MercadoPago');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 2. Si tiene paymentId, consultar PaymentInfo
+        console.log(`🔍 Consultando PaymentInfo con ID: ${p.paymentId}`);
+        if (p.paymentId) {
+          setValidationType('Validando pago por Payment ID');
+          setValidationStep('Consultando el estado del pago en MercadoPago');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const info = await mercadoPagoService.getPaymentInfo(p.paymentId);
+          if (info.status === 'approved') {
+            setIsVerifying(false);
+            setPaymentError(null);
+            setShowSuccess(true);
+            stopPolling = true;
+            return;
+          }
+        }
+
+        // 3. Si existe merchant_order_id, consultar merchantOrderInfo
+        console.log(`🔍 Consultando MerchantOrderInfo con ID: ${paymentInfo?.merchant_order_id}`);
+        if (paymentInfo?.merchant_order_id) {
+          setValidationType('Validando pago por Merchant Order');
+          setValidationStep('Consultando la orden en MercadoPago');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const mo = await mercadoPagoService.getMerchantOrderInfo(paymentInfo.merchant_order_id);
+          const approved = mo.payments?.find((pay: any) => pay.status === 'approved');
+          if (approved) {
+            setIsVerifying(false);
+            setShowSuccess(true);
+            stopPolling = true;
+            return;
+          }
+        }
+
+        // Si no se encontró pago aprobado, incrementar intentos
+        setValidationType('No se encontró pago aprobado, reintentando...');
+        setValidationStep('Esperando confirmación de pago');
+        attempts++;
+        console.log(`🔄 Intento ${attempts}: Pago aún no confirmado`);
+        setFailedAttempts(attempts);
+        setPaymentError('Pago aún no confirmado, reintentando en 10s...');
+        setCountdown(10);
+   
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (attempts >= 3) {
+          setFailedPaymentValidation(true);
+          setValidationType('Consultando preferencia de pago');
+          setValidationStep('Buscando el link de pago en MercadoPago');
+          // Consultar preference con external_reference
+          const preferenceId = p.preferenceId || paymentInfo?.external_reference;
+          if (preferenceId) {
+            try {
+              console.log(`🔍 Consultando preferencia de pago con ID: ${preferenceId}`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              const preference = await mercadoPagoService.getPreference(preferenceId);
+              if (preference && preference.init_point) {
+                setPreferenceInitPoint(preference.init_point);
+                setShowPreference(true);
+              } else {
+                setPreferenceError('No se encontró la preferencia de pago.');
+              }
+            } catch (err) {
+              setPreferenceError('No se pudo consultar la preferencia.');
+            }
+          } else {
+            setPreferenceError('No se encontró referencia de pago para mostrar el link.');
+          }
+          setIsVerifying(false);
+          stopPolling = true;
+          return;
+        }
+      } catch (error: any) {
+        setValidationType('Error en la validación');
+        setValidationStep('Ocurrió un error al validar el pago');
+        setPaymentError(error.message || 'Error al verificar el pago');
+        setIsVerifying(false);
+        stopPolling = true;
+      }
+    };
+
+    // Polling cada 10s hasta éxito o 3 intentos
+    const startPolling = () => {
+      countdownTimer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            return 10;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      verificationTimer = setInterval(() => {
+        if (!stopPolling && !showSuccess && !showPreference && !preferenceError) {
+          fetchPurchaseAndPayment();
+        } else {
+          clearInterval(verificationTimer);
+          clearInterval(countdownTimer);
+        }
+      }, 5000);
+    };
+
+    startPolling();
+    return () => {
+      if (verificationTimer) clearInterval(verificationTimer);
+      if (countdownTimer) clearInterval(countdownTimer);
+    };
+  }, [purchaseId, paymentInfo, getPurchaseById]);
+
+  const handleNumberClick = (ticket: Ticket) => {
+    if (selectedNumbers.includes(ticket.number)) {
+      setSelectedNumbers(selectedNumbers.filter(n => n !== ticket.number));
     } else if (selectedNumbers.length < maxSelections) {
-      setSelectedNumbers([...selectedNumbers, number]);
+      setSelectedNumbers([...selectedNumbers, ticket.number]);
     }
   };
 
@@ -33,18 +199,25 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({ purchaseId, onCl
     if (selectedNumbers.length !== maxSelections || !raffle) return;
 
     setLoading(true);
-    
+
     try {
-      // Simular actualización de tickets
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      updateTickets(purchaseId, selectedNumbers);
-      
+      // Obtener los IDs de los tickets seleccionados
+      const selectedTicketIds = raffle.tickets
+        .filter(t => selectedNumbers.includes(t.number))
+        .map(t => t.id);
+
+      // Guardar los IDs de los tickets seleccionados en la base de datos
+      await updateTickets(purchaseId, selectedTicketIds);
+
+      if (maxSelections === selectedNumbers.length) {
+        await updatePurchaseStatus(purchaseId, 'confirmed');
+        setPurchase(await getPurchaseById(purchaseId));
+      }
       // Simular envío de email
-      setTimeout(() => {
-        setEmailSent(true);
-        setLoading(false);
-      }, 1000);
+      // setTimeout(() => {
+      //   setEmailSent(true);
+      //   setLoading(false);
+      // }, 1000);
 
     } catch (error) {
       console.error('Error confirming selection:', error);
@@ -60,51 +233,114 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({ purchaseId, onCl
 
   const renderTicketGrid = () => {
     if (!raffle) return null;
-    
-    const tickets = [];
-    const ticketsPerRow = 20;
-    const totalRows = Math.ceil(raffle.maxTickets / ticketsPerRow);
 
-    for (let row = 0; row < totalRows; row++) {
-      const rowTickets = [];
-      for (let col = 0; col < ticketsPerRow; col++) {
-        const ticketNumber = row * ticketsPerRow + col + 1;
-        
-        // Skip if ticket number exceeds max tickets
-        if (ticketNumber > raffle.maxTickets) break;
-        
-        const status = getTicketStatus(ticketNumber);
-        
-        rowTickets.push(
-          <button
-            key={ticketNumber}
-            onClick={() => handleNumberClick(ticketNumber)}
-            disabled={status === 'sold' || (status === 'available' && selectedNumbers.length >= maxSelections)}
-            className={`
-              w-8 h-8 text-xs font-medium rounded border transition-all duration-150
-              ${status === 'available' 
-                ? 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200 hover:scale-105' 
-                : status === 'selected'
-                ? 'bg-blue-500 border-blue-600 text-white shadow-lg scale-105'
-                : 'bg-red-100 border-red-300 text-red-600 cursor-not-allowed'
-              }
-              ${status === 'available' && selectedNumbers.length >= maxSelections ? 'opacity-50 cursor-not-allowed' : ''}
-            `}
-          >
-            {ticketNumber}
-          </button>
-        );
-      }
+    const tickets: JSX.Element[] = [];
+
+    raffle.tickets.forEach(ticket => {
+      const status = getTicketStatus(ticket.number);
+      // Render each ticket button
       
       tickets.push(
-        <div key={row} className="flex gap-1">
-          {rowTickets}
-        </div>
+        <button
+          key={ticket.id}
+          onClick={() => handleNumberClick(ticket)}
+          disabled={status === 'sold' || (status === 'available' && selectedNumbers.length >= maxSelections)}
+          className={`
+            w-10 h-10 m-2 text-xs font-medium rounded border transition-all duration-150
+            ${status === 'available'
+              ? 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200 hover:scale-105'
+              : status === 'selected'
+                ? 'bg-blue-500 border-blue-600 text-white shadow-lg scale-105'
+                : 'bg-red-100 border-red-300 text-red-600 cursor-not-allowed'
+            }
+            ${status === 'available' && selectedNumbers.length >= maxSelections ? 'opacity-50 cursor-not-allowed' : ''}
+          `}
+        >
+          {ticket.number}
+        </button>
       );
-    }
-    
+    });
+
     return tickets;
   };
+
+  // Mostrar loading mientras verifica
+  // Mostrar loading con countdown mientras verifica
+  if ((isVerifying && paymentError) || (isVerifying && validationType)) {
+    return (
+      <div className="text-center py-8 space-y-4">
+        <div className="mx-auto mb-2 flex items-center justify-center">
+          <Wallet className="w-10 h-10 text-blue-500 wallet-spin" />
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900">Verificando Pago</h3>
+          <p className="text-blue-700 font-semibold">{validationType}</p>
+          <p className="text-gray-700">{validationStep}</p>
+          <p className="text-gray-600">{paymentError}</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Próximo intento en: <span className="font-mono text-blue-600">{countdown}s</span>
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-4 text-gray-600 hover:text-gray-800 underline"
+        >
+          Cerrar y volver más tarde
+        </button>
+      </div>
+    );
+  }
+
+  // Si la compra ya está confirmada, mostrar mensaje y los números seleccionados
+  if (purchase && purchase.status === 'confirmed') {
+    return (
+      <div className="text-center py-8 space-y-6">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+          <CheckCircle className="w-10 h-10 text-green-600" />
+        </div>
+        <div>
+          <h3 className="text-2xl font-semibold text-green-900 mb-2">
+            Números ya seleccionados
+          </h3>
+          <p className="text-gray-600 mb-4">
+            Ya has confirmado tus números para esta compra. Si tienes dudas, revisa tu email ({purchase.email}).
+          </p>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-w-md mx-auto">
+            <p className="text-sm text-green-800 mb-2">
+              <strong>Números seleccionados:</strong>
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {purchase.tickets?.map(t => (
+                <span
+                  key={t.id}
+                  className="bg-green-500 text-white px-2 py-1 rounded font-medium text-sm"
+                >
+                  {t.number}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <Button onClick={onClose} className="w-full max-w-md">
+          Finalizar
+        </Button>
+      </div>
+    );
+  }
+
+  // Mostrar loading inicial
+  if (isVerifying) {
+    return (
+      <div className="text-center py-8 space-y-4">
+        <div className="mx-auto mb-2 flex items-center justify-center">
+          <Wallet className="w-10 h-10 text-blue-500 wallet-spin" />
+        </div>
+        <p className="text-blue-700 font-semibold">{validationType || 'Verificando el estado del pago...'}</p>
+        <p className="text-gray-700">{validationStep || 'Iniciando validación...'}</p>
+        <p className="text-gray-600">Verificando el estado del pago...</p>
+      </div>
+    );
+  }
 
   if (!purchase || !raffle || !priceTier) {
     return (
@@ -134,7 +370,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({ purchaseId, onCl
         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
           <Mail className="w-10 h-10 text-green-600" />
         </div>
-        
+
         <div>
           <h3 className="text-2xl font-semibold text-green-900 mb-2">
             ¡Números Confirmados!
@@ -167,6 +403,84 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({ purchaseId, onCl
 
         <Button onClick={onClose} className="w-full max-w-md">
           Finalizar
+        </Button>
+      </div>
+    );
+  }
+
+  // Pantalla de pago exitoso
+  if (showSuccess) {
+    return (
+      <div className="text-center py-12 space-y-8">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+          <CheckCircle className="w-12 h-12 text-green-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-green-900">¡Pago Exitoso!</h2>
+        <p className="text-gray-700 text-lg max-w-md mx-auto">
+          Tu pago fue confirmado correctamente. Ahora puedes seleccionar tus números de la suerte para participar en la rifa.
+        </p>
+        <Button
+          className="w-full max-w-xs mx-auto"
+          onClick={() => setShowSuccess(false)}
+        >
+          Seleccionar Números
+        </Button>
+      </div>
+    );
+  }
+
+  // Pantalla de error tras 3 intentos
+  if (!isVerifying && failedPaymentValidation) {
+    const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'dev';
+    return (
+      <div className="text-center py-12 space-y-8">
+        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+          <Lock className="w-12 h-12 text-red-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-red-900">No se pudo encontrar tu pago</h2>
+        <p className="text-gray-700 text-lg max-w-md mx-auto">
+          No se encontró un pago aprobado tras varios intentos. Por favor, verifica tu pago o intenta nuevamente.
+        </p>
+        <div className="flex flex-col items-center gap-4 mt-4">
+          {preferenceInitPoint && (
+            <a
+              href={preferenceInitPoint}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700"
+            >
+              Ir al link de pago
+            </a>
+          )}
+          <Button className="w-full max-w-xs mx-auto" onClick={onClose}>
+            Cerrar
+          </Button>
+          {isDev && (
+            <Button className="w-full max-w-xs mx-auto" variant="outline"
+              onClick={() => {
+                setShowSuccess(true);
+                setFailedPaymentValidation(false);
+              }}>
+              Continuar con la selección de números (DEV)
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+  // Pantalla de error si no hay external_reference
+  if (preferenceError) {
+    return (
+      <div className="text-center py-12 space-y-8">
+        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+          <Lock className="w-12 h-12 text-red-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-red-900">No se pudo encontrar tu pago</h2>
+        <p className="text-gray-700 text-lg max-w-md mx-auto">
+          {preferenceError}
+        </p>
+        <Button className="w-full max-w-xs mx-auto mt-4" onClick={onClose}>
+          Cerrar
         </Button>
       </div>
     );
@@ -221,7 +535,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({ purchaseId, onCl
               </div>
 
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${(selectedNumbers.length / maxSelections) * 100}%` }}
                 />
@@ -278,3 +592,6 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({ purchaseId, onCl
     </div>
   );
 };
+
+/* Agregar animación lenta para Wallet */
+/* Mueve estas reglas a tu archivo CSS global o usa una solución CSS-in-JS */

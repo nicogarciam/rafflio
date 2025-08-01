@@ -1,4 +1,4 @@
-import { Payment } from "mercadopago";
+import { Payment, MerchantOrder, Preference } from "mercadopago";
 // Endpoint de webhook de MercadoPago
 import { Request, Response } from 'express';
 
@@ -6,9 +6,11 @@ const fs = require('fs');
 const { createServer } = require('http');
 const express = require('express');
 const cors = require('cors');
-const { MercadoPagoConfig, Preference } = require('mercadopago');
+const { MercadoPagoConfig } = require('mercadopago');
 const { Server } = require('socket.io');
 import type { Socket } from 'socket.io';
+import { PaymentSearchOptions } from "mercadopago/dist/clients/payment/search/types";
+import { MerchantOrderSearchOptions } from "mercadopago/dist/clients/merchantOrder/search/types";
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
@@ -36,6 +38,142 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const purchaseSockets = new Map();
 
 
+
+
+
+app.post('/api/payment/payment-info', async (req: Request, res: Response) => {
+  try {
+    const { paymentId } = req.body;
+    if (!paymentId) {
+      return res.status(400).json({ error: 'paymentId es requerido' });
+    }
+
+    const paymentMP = new Payment(mercadoPagoClient);
+    const payment = await paymentMP.get({ id: paymentId });
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+
+    // Puedes adaptar la respuesta según lo que necesite tu frontend
+    res.json(payment);
+  } catch (error: any) {
+    console.error('Error getting MercadoPago payment info:', error);
+    res.status(500).json({ error: error.message || 'Error al obtener información del pago' });
+  }
+});
+
+app.post('/api/payment/create', async (req: Request, res: Response) => {
+  try {
+    const { paymentId } = req.body;
+    if (!paymentId) {
+      return res.status(400).json({ error: 'paymentId es requerido' });
+    }
+
+    const payment = new Payment(mercadoPagoClient);
+    payment.create({ body: req.body })
+      .then(console.log)
+      .catch(console.log);
+  } catch (error: any) {
+    console.error('Error getting MercadoPago payment info:', error);
+    res.status(500).json({ error: error.message || 'Error al obtener información del pago' });
+  }
+});
+
+
+app.post('/api/payment/merchant-order-info', async (req: Request, res: Response) => {
+  try {
+    const { merchantOrderId } = req.body;
+    if (!merchantOrderId) {
+      return res.status(400).json({ error: 'merchantOrderId es requerido' });
+    }
+    const merchanOrderMP = new MerchantOrder(mercadoPagoClient);
+    const moResponse = await merchanOrderMP.get(merchantOrderId);
+    const merchantOrder = moResponse;
+
+    // Devuelve la info completa del merchant order
+    res.json(merchantOrder);
+  } catch (error: any) {
+    console.error('Error getting merchant order info:', error);
+    res.status(500).json({ error: error.message || 'Error al obtener merchant order' });
+  }
+});
+
+app.post('/api/payment/status-by-merchant-order', async (req: Request, res: Response) => {
+  try {
+    const { preference_id } = req.body;
+    if (!preference_id) {
+      return res.status(400).json({ error: 'preference_id  es requerido' });
+    }
+
+    const merchanOrderMP = new MerchantOrder(mercadoPagoClient);
+    // Consulta el merchant order en MercadoPago
+    // export declare interface MerchantOrderSearchOptions extends SearchOptions {
+    //     status?: string;
+    //     preference_id?: string;
+    //     payer_id?: string;
+    //     external_reference?: string;
+    // }
+
+    const merchantOrderSearchOptions: MerchantOrderSearchOptions = {
+      preference_id: preference_id
+    };
+    const moResponse = await merchanOrderMP.search({ options: merchantOrderSearchOptions });
+    if (!moResponse || !moResponse.elements || moResponse.elements.length === 0) {
+      return res.status(404).json({ error: 'Merchant order not found' });
+    }
+
+    const merchantOrder = moResponse.elements[0];
+    const paymentApproved = merchantOrder.payments?.find((pay: any) => pay.status === 'approved');
+    // Devuelve la info completa del merchant order
+    res.json(paymentApproved || { status: 'not_found' });
+  } catch (error: any) {
+    console.error('Error getting merchant order info:', error);
+    res.status(500).json({ error: error.message || 'Error al obtener merchant order' });
+  }
+});
+
+// Endpoint para consultar pago por preference_id
+app.post('/api/payment/payment-by-preference', async (req: Request, res: Response) => {
+  try {
+    const { preference_id } = req.body;
+    if (!preference_id) {
+      return res.status(400).json({ error: 'preference_id es requerido' });
+    }
+
+    const payment = new Payment(mercadoPagoClient);
+    //  PaymentSearchOptions
+    // sort?: 'date_approved' | 'date_created' | 'date_last_updated' | 'money_release_date';
+    // criteria?: 'asc' | 'desc';
+    // external_reference?: string;
+    // range?: 'date_created' | 'date_last_updated' | 'date_approved' | 'money_release_date' | 'date_created';
+    // begin_date?: string;
+    // end_date?: string;
+    const paymentSearchOptions: PaymentSearchOptions = {
+      sort: 'date_created',
+      criteria: 'desc',
+      range: 'date_created',
+      begin_date: 'NOW-30DAYS',
+      end_date: 'NOW',
+      store_id: '47792478',
+      pos_id: '58930090',
+      offset: 0,
+      limit: 30,
+    };
+
+    const response = await payment.search({ options: paymentSearchOptions });
+    const results = (response as any).results;
+    if (!results || results.length === 0) {
+      return res.json({ status: 'not_found' });
+    }
+    const pay = results[0];
+    res.json(pay);
+  } catch (error: any) {
+    console.error('Error getting payment by preferenceId:', error);
+    res.status(500).json({ error: error.message || 'Error al obtener pago por preferenceId' });
+  }
+});
+
+
 app.post('/api/payment/create-preference', async (req: Request, res: Response) => {
   try {
     const paymentData = req.body;
@@ -55,55 +193,46 @@ app.post('/api/payment/create-preference', async (req: Request, res: Response) =
   }
 });
 
-
-app.post('/api/payment/payment-info', async (req: Request, res: Response) => {
+app.post('/api/payment/preference-info', async (req: Request, res: Response) => {
   try {
-    const { paymentId } = req.body;
-    if (!paymentId) {
-      return res.status(400).json({ error: 'paymentId es requerido' });
+    const { preference_id } = req.body;
+    if (!preference_id) {
+      return res.status(400).json({ error: 'preference_id es requerido' });
     }
+    const preferenceMP = new Preference(mercadoPagoClient);
 
-    // Usar el SDK de MercadoPago para obtener la info del pago
-    const payment = await mercadoPagoClient.get(`/v1/payments/${paymentId}`);
-
-    // Puedes adaptar la respuesta según lo que necesite tu frontend
-    res.json({
-      id: payment.body.id,
-      status: payment.body.status,
-      status_detail: payment.body.status_detail,
-      external_reference: payment.body.external_reference,
-      preference_id: payment.body.preference_id,
-      payer: payment.body.payer,
-      transaction_amount: payment.body.transaction_amount,
-      date_approved: payment.body.date_approved,
-      date_created: payment.body.date_created,
-    });
+    const preference = await preferenceMP.get({ preferenceId: preference_id });
+    if (!preference) {
+      return res.json({ status: 'not_found' });
+    }
+    res.json(preference);
   } catch (error: any) {
-    console.error('Error getting MercadoPago payment info:', error);
-    res.status(500).json({ error: error.message || 'Error al obtener información del pago' });
+    console.error('Error getting Preference by preferenceId:', error);
+    res.status(500).json({ error: error.message || 'Error al obtener Preference por preferenceId' });
   }
 });
 
-app.post('/api/payment/create', async (req: Request, res: Response) => {
+app.post('/api/payment/preference-by-ref', async (req: Request, res: Response) => {
   try {
-    const { paymentId } = req.body;
-    if (!paymentId) {
-      return res.status(400).json({ error: 'paymentId es requerido' });
+    const { reference_id } = req.body;
+    if (!reference_id) {
+      return res.status(400).json({ error: 'reference_id es requerido' });
     }
-    
-    const payment = new Payment(mercadoPagoClient);
-    payment.create({ body: req.body })
-    .then(console.log)
-    .catch(console.log);
+    const preferenceMP = new Preference(mercadoPagoClient);
+
+    const response = await preferenceMP.search({ options: { external_reference: reference_id } });
+    if (!response || !response.elements || response.elements.length === 0) {
+      return res.json({ status: 'not_found' });
+    }
+    const preference = response.elements[0];
+    res.json(preference);
   } catch (error: any) {
-    console.error('Error getting MercadoPago payment info:', error);
-    res.status(500).json({ error: error.message || 'Error al obtener información del pago' });
+    console.error('Error getting Preference by preferenceId:', error);
+    res.status(500).json({ error: error.message || 'Error al obtener Preference por preferenceId' });
   }
 });
 
-
-
-app.get('/api/test', async (req: Request, res: Response) => { 
+app.get('/api/test', async (req: Request, res: Response) => {
   res.json({ message: 'API is working!' });
 });
 
@@ -126,14 +255,14 @@ const io = new Server(httpServer, {
 // Cuando un cliente se conecta
 io.on('connection', (socket: Socket) => {
   console.log(`Cliente conectado: ${socket.id}`);
-  
+
   socket.on('subscribePurchase', (purchaseId: string) => {
     purchaseSockets.set(purchaseId, socket.id);
   });
 
   socket.on('mensaje_chat', (data) => {
     console.log(`Mensaje recibido: ${data.texto}`);
-    
+
     // Reenviar a todos los clientes (broadcast)
     io.emit('nuevo_mensaje', {
       usuario: data.usuario,
@@ -141,7 +270,7 @@ io.on('connection', (socket: Socket) => {
       fecha: new Date().toLocaleTimeString()
     });
   });
-  
+
   socket.on('disconnect', () => {
     // Limpia purchaseSockets si lo deseas
     for (const [purchaseId, id] of purchaseSockets.entries()) {
@@ -213,6 +342,6 @@ app.post('/api/payment/webhook', async (req: Request, res: Response) => {
 
 
 
-httpServer.listen(PORT,"0.0.0.0", () => {
+httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend HTTPS + WebSocket listening on ${baseUrl}`);
 });

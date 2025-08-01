@@ -43,7 +43,7 @@ export interface Purchase {
   tickets: Ticket[];
   paymentId: string;
   preferenceId: string; // <-- Agregado para MercadoPago
-  status: 'pending' | 'paid' | 'failed';
+  status: 'pending' | 'paid' | 'failed' | 'cancelled' | 'confirmed';
   createdAt: string;
   raffleId: string;
   priceTierId: string;

@@ -1,10 +1,12 @@
 import { io, Socket } from 'socket.io-client';
+import { config } from '../lib/config';
 
 let socket: Socket | null = null;
 
 export function connectPaymentSocket() {
+  const apiUrl = config.app.apiUrl;
   if (!socket) {
-    socket = io('https://localhost:4000', {
+    socket = io(apiUrl, {
       secure: true,
       transports: ['websocket'],
       // Si usas certificados autofirmados en desarrollo:

@@ -12,10 +12,11 @@ interface RaffleContextType {
   createPurchase: (purchase: Omit<Purchase, 'id' | 'createdAt' | 'paymentId'>) => Promise<Purchase>;
   updatePurchaseStatus: (purchaseId: string, status: Purchase['status']) => Promise<void>;
   updatePurchasePreferenceId: (purchaseId: string, preferenceId: string) => Promise<void>;
-  updateTickets: (purchaseId: string, ticketNumbers: number[]) => Promise<void>;
+  updateTickets: (purchaseId: string, ticketNumbers: string[]) => Promise<void>;
   getAvailableTickets: (raffleId: string) => Promise<Ticket[]>;
   refreshRaffles: () => Promise<void>;
   refreshPurchases: () => Promise<void>;
+  getPurchaseById: (purchaseId: string) => Promise<Purchase | null>;
 }
 
 const RaffleContext = createContext<RaffleContextType | undefined>(undefined);
@@ -117,9 +118,9 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       setError(null);
       await raffleService.updatePurchaseStatus(purchaseId, status);
-      
-      setPurchases(prev => 
-        prev.map(purchase => 
+
+      setPurchases(prev =>
+        prev.map(purchase =>
           purchase.id === purchaseId ? { ...purchase, status } : purchase
         )
       );
@@ -129,14 +130,14 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       throw err;
     }
   };
-  
+
   const updatePurchasePreferenceId = async (purchaseId: string, preferenceId: string) => {
     try {
       setError(null);
       await raffleService.updatePurchasePreferenceId(purchaseId, preferenceId);
-      
-      setPurchases(prev => 
-        prev.map(purchase => 
+
+      setPurchases(prev =>
+        prev.map(purchase =>
           purchase.id === purchaseId ? { ...purchase, preferenceId } : purchase
         )
       );
@@ -147,20 +148,19 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  
 
-  const updateTickets = async (purchaseId: string, ticketNumbers: number[]) => {
+  const updateTickets = async (purchaseId: string, ticketIds: string[]) => {
     try {
       setError(null);
-      await raffleService.assignTicketsToPurchase(purchaseId, ticketNumbers);
-      
+      await raffleService.assignTicketsToPurchase(purchaseId, ticketIds);
+
       // Actualizar el estado local
-      await loadRaffles(); // Recargar rifas para actualizar tickets
-      
+      // await loadRaffles(); // Recargar rifas para actualizar tickets
+
       // Actualizar la compra con los tickets seleccionados
       const updatedPurchase = await raffleService.getPurchaseById(purchaseId);
       if (updatedPurchase) {
-        setPurchases(prev => 
+        setPurchases(prev =>
           prev.map(p => p.id === purchaseId ? updatedPurchase : p)
         );
       }
@@ -189,8 +189,22 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     await loadPurchases();
   };
 
+  const getPurchaseById = async (purchaseId: string) => {
+    try {
+      const purchase = raffleService.getPurchaseById(purchaseId);
+      if (purchase) {
+        return purchase;
+      }
+      return null;
+    } catch (err) {
+      console.error('Error getting purchase by ID:', err);
+      setError(err instanceof Error ? err.message : 'Error al obtener la compra');
+      throw err;
+    }
+  };
+
   return (
-    <RaffleContext.Provider value = {{
+    <RaffleContext.Provider value={{
       raffles,
       purchases,
       isLoading,
@@ -203,7 +217,8 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       updateTickets,
       getAvailableTickets,
       refreshRaffles,
-      refreshPurchases
+      refreshPurchases,
+      getPurchaseById
     }}>
       {children}
     </RaffleContext.Provider>

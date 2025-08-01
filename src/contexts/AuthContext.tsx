@@ -58,10 +58,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
 
       const credentials: LoginCredentials = { email, password };
-      
+
       // Intentar login con Supabase primero
       const response = await authService.login(credentials);
-      
+
       if (response.success && response.user) {
         setUser(response.user);
         localStorage.setItem('user', JSON.stringify(response.user));
@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // Fallback a credenciales hardcodeadas para desarrollo
         const fallbackResponse = await authService.loginWithHardcodedCredentials(credentials);
-        
+
         if (fallbackResponse.success && fallbackResponse.user) {
           setUser(fallbackResponse.user);
           localStorage.setItem('user', JSON.stringify(fallbackResponse.user));

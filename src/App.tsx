@@ -16,6 +16,7 @@ import { config } from './lib/config';
 import TestMercadoPago from './components/purchase/TestMercadoPago';
 import RafflesView from './views/RafflesView';
 import PurchasesView from './views/PurchasesView';
+import { PaymentSuccessPage } from './views/PaymentSuccessPage';
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -97,6 +98,9 @@ const AppContent: React.FC = () => {
               ) : null
             }
           />
+
+          <Route path="/payment/:purchaseId?/success" element={<PaymentSuccessPage />} />
+          
           {/* <Route path="/test-mercadopago" element={<TestMercadoPago />} /> */}
         </Routes>
       </main>

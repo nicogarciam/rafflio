@@ -11,7 +11,7 @@ export interface PaymentData {
   amount: number;
   ticketCount: number;
   raffleTitle: string;
-  purchaseId ?: string; 
+  purchaseId?: string;
 }
 
 export interface MercadoPagoResponse {
@@ -23,10 +23,12 @@ export interface MercadoPagoResponse {
 
 export class MercadoPagoService {
   async createPaymentPreference(paymentData: PaymentData, purchaseId: string): Promise<MercadoPagoResponse> {
-   
+
     try {
       const baseUrl = config.app.baseUrl;
-      
+      const baseUrlHttps = baseUrl.replace(/^http:/, 'https:');
+      const apiUrl = config.app.apiUrl;
+
       const preferenceData = {
         items: [
           {
@@ -47,12 +49,18 @@ export class MercadoPagoService {
           }
         },
         external_reference: purchaseId,
-        notification_url: `${baseUrl}/api/payment/webhook`,
+        notification_url: `${apiUrl}/api/payment/webhook`,
         back_urls: {
-          success: `${baseUrl}/payment/success?purchase_id=${purchaseId}`,
-          failure: `${baseUrl}/payment/failure?purchase_id=${purchaseId}`,
-          pending: `${baseUrl}/payment/pending?purchase_id=${purchaseId}`
+          success: `${baseUrlHttps}/payment/${purchaseId}/success`,
+          failure: `${baseUrlHttps}/payment/${purchaseId}/failure`,
+          pending: `${baseUrlHttps}/payment/${purchaseId}/pending`
         },
+
+        // payment_id	ID (identificador) del pago de Mercado Pago.
+        // status	Status del pago. Por ejemplo: approved para un pago aprobado o pending para un pago pendiente.
+        // external_reference	Referencia que puedes sincronizar con tu sistema de pagos.
+        // merchant_order_id	ID (identificador) de la orden de pago generada en Mercado Pago.
+
         auto_return: 'approved' as const,
         payment_methods: {
           excluded_payment_methods: [],
@@ -70,7 +78,7 @@ export class MercadoPagoService {
       };
 
       const response = await this.createPreference(preferenceData);
-      
+
       return {
         id: response.id!,
         init_point: response.init_point!,
@@ -79,50 +87,100 @@ export class MercadoPagoService {
       };
     } catch (error) {
       console.error('Error creating MercadoPago preference:', error);
-      
+
       // Si hay un error de configuración, proporcionar información útil
       if (error instanceof Error && error.message.includes('substring')) {
         throw new Error('MercadoPago no está configurado correctamente. Verifica VITE_MERCADOPAGO_ACCESS_TOKEN en tu archivo .env');
       }
-      
+
       throw new Error('Error al crear la preferencia de pago');
     }
   }
 
 
   async createPreference(paymentData: any) {
-  const apiUrl = config.app.apiUrl || 'http://localhost:4000/api';
-  const response = await fetch(apiUrl + '/payment/create-preference', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...paymentData }),
-  });
-  if (!response.ok) throw new Error('Error al crear preferencia');
-  return await response.json();
+    const apiUrl = config.app.apiUrl;
+    const response = await fetch(apiUrl + '/payment/create-preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...paymentData }),
+    });
+    if (!response.ok) throw new Error('Error al crear preferencia');
+    return await response.json();
   }
 
-async getPaymentInfo(paymentId: string) {
-    // Si MercadoPago no está configurado, simular respuesta para desarrollo
-    
+  async getPaymentInfo(purchaseId: string) {
     try {
-      // En un entorno real, aquí consultarías el estado del pago
-      const apiUrl = config.app.apiUrl || 'http://localhost:4000/api';
-      const response = await fetch(apiUrl + '/payment/payment-info', {
+      const response = await fetch(`${config.app.apiUrl}/payment/payment-info`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId: paymentId }),
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ purchaseId })
       });
-      if (!response.ok) throw new Error('Error al getPaymentInfo');
+
+      if (!response.ok) throw new Error('Error al obtener información del pago');
       return await response.json();
-      
-      
     } catch (error) {
       console.error('Error getting payment info:', error);
-      throw new Error('Error al obtener información del pago');
+      throw error;
     }
   }
 
-  
+  /** Consulta un merchant order completo */
+  async getMerchantOrderInfo(merchantOrderId: string) {
+    const res = await fetch(`${config.app.apiUrl}/api/payment/merchant-order-info`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ merchantOrderId })
+    });
+    if (!res.ok) throw new Error('Error al obtener merchant order');
+    return res.json();
+  }
+
+
+  /** Consulta un merchant order completo */
+  async getPaymentStatusByMerchantOrder(merchantOrderId: string) {
+    const res = await fetch(`${config.app.apiUrl}/api/payment/status-by-merchant-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ merchantOrderId })
+    });
+    if (!res.ok) throw new Error('Error al obtener merchant order');
+    return res.json();
+  }
+
+  /** Consulta pago por preference_id */
+  async getPaymentByPreferenceId(preferenceId: string) {
+    try {
+      const response = await fetch(`${config.app.apiUrl}/payment/payment-by-preference`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preference_id: preferenceId })
+      });
+      if (!response.ok) throw new Error('Error al obtener pago por preferenceId');
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting payment by preferenceId:', error);
+      throw error;
+    }
+  }
+
+  async getPreference(preferenceId: string) {
+    try {
+      const response = await fetch(`${config.app.apiUrl}/payment/preference-info`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preference_id: preferenceId })
+      });
+      if (!response.ok) throw new Error('Error al obtener pago por preferenceId');
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting payment by preferenceId:', error);
+      throw error;
+    }
+  }
+
 }
 
 export const mercadoPagoService = new MercadoPagoService();

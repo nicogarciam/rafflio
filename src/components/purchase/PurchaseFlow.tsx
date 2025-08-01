@@ -8,6 +8,8 @@ import { CreditCard, User, Mail, Phone, Ticket } from 'lucide-react';
 import { usePaymentStatus } from '../../hooks/usePaymentStatus';
 import { mercadoPagoService } from '../../services/mercadopago';
 import { CardPayment, initMercadoPago, Payment, Wallet } from '@mercadopago/sdk-react';
+import { config } from '../../lib/config';
+import { useNavigate } from 'react-router-dom';
 
 interface PurchaseFlowProps {
   raffle: Raffle;
@@ -36,22 +38,25 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'failed' | 'rejected' | 'cancelled' | null>(null);
 
   const { createPurchase, updatePurchaseStatus, updatePurchasePreferenceId } = useRaffle();
+  const navigate = useNavigate();
 
   const handleTierSelect = (tier: PriceTier) => {
     setSelectedTier(tier);
     setStep(2);
   };
 
-  useEffect(() => { 
-      if (!window.MercadoPago) {
-        initMercadoPago('APP_USR-4fa3ef4f-70d8-45db-aa97-ac7b0fc05d27', {
-          locale: 'es-AR',
-        });
-      } else {
-        console.log('MercadoPago ya está inicializado');
-      }
-    }, [] );
-  
+  useEffect(() => {
+    const mpPublicKey = config.mercadopago.publicKey;
+
+    if (!window.MercadoPago) {
+      initMercadoPago(mpPublicKey, {
+        locale: 'es-AR',
+      });
+    } else {
+      console.log('MercadoPago ya está inicializado');
+    }
+  }, []);
+
   const handleUserDataSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTier) return;
@@ -86,21 +91,21 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
 
         const preference = await mercadoPagoService.createPaymentPreference(paymentData, purchase.id);
         setPreferenceId(preference.id);
-        
+
         await updatePurchasePreferenceId(purchase.id, preference.id);
-        
+
         // Modo producción - redirigir a MercadoPago
         console.log('🚀 Redirigiendo a MercadoPago:', preference.init_point);
         console.log('preference ID:', preferenceId);
 
         // openCheckout();
-       // Abre la ventana de pago de MercadoPago
+        // Abre la ventana de pago de MercadoPago
         window.open(preference.init_point, '_blank', 'noopener,noreferrer');
         setStep(3);
-        
+
       } catch (paymentError) {
         console.error('Error creating payment preference:', paymentError);
-        
+
         // Manejar errores específicos de configuración
         if (paymentError instanceof Error) {
           if (paymentError.message.includes('MercadoPago no está configurado')) {
@@ -113,7 +118,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
         } else {
           setError('Error inesperado al procesar el pago.');
         }
-        
+
         updatePurchaseStatus(purchase.id, 'failed');
         setLoading(false);
       }
@@ -232,7 +237,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
 
           <form onSubmit={handleUserDataSubmit} className="space-y-4">
             <div className="relative">
-              <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+              <User className="absolute left-3 top-1/2 transform w-4 h-4 text-gray-400" />
               <Input
                 label="Nombre completo"
                 value={userData.fullName}
@@ -243,7 +248,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
             </div>
 
             <div className="relative">
-              <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 transform  w-4 h-4 text-gray-400" />
               <Input
                 label="Correo electrónico"
                 type="email"
@@ -255,7 +260,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
             </div>
 
             <div className="relative">
-              <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+              <Phone className="absolute left-3 top-1/2 transform w-4 h-4 text-gray-400" />
               <Input
                 label="Teléfono"
                 value={userData.phone}
@@ -285,58 +290,86 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
               </Button>
             </div>
           </form>
-          
+
         </div>
       )}
 
       {step === 3 && (
-        <div className="text-center space-y-6">
-          {paymentStatus !== 'approved' ? (
-            <>
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto animate-spin">
-                <CreditCard className="w-8 h-8 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-blue-900 mb-2">
-                  Procesando tu pago...
-                </h3>
-                <p className="text-gray-600">
-                  Estado actual: <span className="font-mono">{paymentStatus || 'pending'}</span>
-                </p>
-                <p className="text-gray-500 text-sm mt-2">
-                  No cierres esta ventana hasta que el pago sea confirmado.
-                </p>
-              </div>
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-                  <p>{error}</p>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                <CreditCard className="w-8 h-8 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-green-900 mb-2">
-                  ¡Pago Exitoso!
-                </h3>
-                <p className="text-gray-600">
-                  Tu pago ha sido procesado correctamente. Ahora puedes seleccionar tus números.
-                </p>
-              </div>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm text-green-800">
-                  <strong>Siguiente paso:</strong> Selecciona tus {selectedTier?.ticketCount} números de la suerte
-                </p>
-              </div>
-              <Button onClick={handleClose} className="w-full">
-                Continuar a Selección de Números
+        config.isDevelopment ? (
+          <div className="text-center space-y-6">
+            <h3 className="text-xl font-semibold text-gray-900">Entorno local: Simular pago</h3>
+            <div className="flex justify-center space-x-4 pt-4">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await updatePurchaseStatus(purchaseId, 'paid');
+                  handleClose();
+                  navigate(`/payment/${purchaseId}/success`);
+                }}
+              >
+                Simular Pago Exitoso
               </Button>
-            </>
-          )}
-        </div>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await updatePurchaseStatus(purchaseId, 'failed');
+                  handleClose();
+                  navigate('/');
+                }}
+              >
+                Simular Pago Fallido
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center space-y-6">
+            {paymentStatus !== 'approved' ? (
+              <>
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto animate-spin">
+                  <CreditCard className="w-8 h-8 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-blue-900 mb-2">
+                    Procesando tu pago...
+                  </h3>
+                  <p className="text-gray-600">
+                    Estado actual: <span className="font-mono">{paymentStatus || 'pending'}</span>
+                  </p>
+                  <p className="text-gray-500 text-sm mt-2">
+                    No cierres esta ventana hasta que el pago sea confirmado.
+                  </p>
+                </div>
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+                    <p>{error}</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                  <CreditCard className="w-8 h-8 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-green-900 mb-2">
+                    ¡Pago Exitoso!
+                  </h3>
+                  <p className="text-gray-600">
+                    Tu pago ha sido procesado correctamente. Ahora puedes seleccionar tus números.
+                  </p>
+                </div>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-800">
+                    <strong>Siguiente paso:</strong> Selecciona tus {selectedTier?.ticketCount} números de la suerte
+                  </p>
+                </div>
+                <Button onClick={handleClose} className="w-full">
+                  Continuar a Selección de Números
+                </Button>
+              </>
+            )}
+          </div>
+        )
       )}
     </Modal>
   );

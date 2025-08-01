@@ -461,12 +461,14 @@ class RaffleService {
     }
   }
 
-  async assignTicketsToPurchase(purchaseId: string, ticketNumbers: number[]): Promise<boolean> {
+  async assignTicketsToPurchase(purchaseId: string, ticketIds: string[]): Promise<boolean> {
     if (!supabase) {
       // Simular asignación de tickets en modo desarrollo
       console.log('🔧 Asignando tickets de ejemplo en modo desarrollo');
       return true;
     }
+
+    console.log('🔧 Asignando tickets en modo producción');
 
     try {
       const { error } = await supabase
@@ -475,7 +477,7 @@ class RaffleService {
           status: 'sold',
           purchase_id: purchaseId,
         })
-        .in('number', ticketNumbers);
+        .in('id', ticketIds);
 
       if (error) {
         console.error('Error assigning tickets:', error);
@@ -515,30 +517,26 @@ class RaffleService {
     }
   }
 
-  async getPurchaseById(id: string): Promise<Purchase | null> {
+  async getPurchaseById(purchaseId: string): Promise<Purchase | null> {
     if (!supabase) {
-      return this.mockPurchases.find(p => p.id === id) || null;
+      return null;
     }
 
     try {
-      const { data, error } = await supabase
+      const { data: purchase, error } = await supabase
         .from('purchases')
         .select(`
           *,
           tickets (*)
         `)
-        .eq('id', id)
+        .eq('id', purchaseId)
         .single();
 
-      if (error) {
-        console.error('Error fetching purchase:', error);
-        return null;
-      }
-
-      return this.transformPurchaseData(data);
+      if (error) throw error;
+      return this.transformPurchaseData(purchase);
     } catch (error) {
-      console.error('Error in getPurchaseById:', error instanceof Error ? error.message : String(error));
-      return null;
+      console.error('Error in getPurchaseById:', error);
+      throw error;
     }
   }
 
@@ -613,4 +611,4 @@ class RaffleService {
   }
 }
 
-export const raffleService = new RaffleService(); 
+export const raffleService = new RaffleService();
