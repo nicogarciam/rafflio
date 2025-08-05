@@ -26,7 +26,6 @@ export class MercadoPagoService {
 
     try {
       const baseUrl = config.app.baseUrl;
-      const baseUrlHttps = baseUrl.replace(/^http:/, 'https:');
       const apiUrl = config.app.apiUrl;
 
       const preferenceData = {
@@ -51,9 +50,9 @@ export class MercadoPagoService {
         external_reference: purchaseId,
         notification_url: `${apiUrl}/api/payment/webhook`,
         back_urls: {
-          success: `${baseUrlHttps}/payment/${purchaseId}/success`,
-          failure: `${baseUrlHttps}/payment/${purchaseId}/failure`,
-          pending: `${baseUrlHttps}/payment/${purchaseId}/pending`
+          success: `${baseUrl}/payment/${purchaseId}/success`,
+          failure: `${baseUrl}/payment/${purchaseId}/failure`,
+          pending: `${baseUrl}/payment/${purchaseId}/pending`
         },
 
         // payment_id	ID (identificador) del pago de Mercado Pago.
@@ -100,6 +99,7 @@ export class MercadoPagoService {
 
   async createPreference(paymentData: any) {
     const apiUrl = config.app.apiUrl;
+    console.log('Creating payment preference with data:', paymentData, apiUrl);
     const response = await fetch(apiUrl + '/payment/create-preference', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

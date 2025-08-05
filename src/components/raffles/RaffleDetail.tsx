@@ -6,7 +6,11 @@ import { Button } from '../ui/Button';
 import { Raffle } from '../../types';
 import { raffleService } from '../../services/raffle.service';
 
-export const RaffleDetail: React.FC = () => {
+interface RaffleDetailProps {
+  onBuyTickets?: (raffle: Raffle) => void;
+}
+
+export const RaffleDetail: React.FC<RaffleDetailProps> = ({ onBuyTickets }) => {
   const { raffleId } = useParams<{ raffleId: string }>();
   const [raffle, setRaffle] = useState<Raffle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -21,8 +25,9 @@ export const RaffleDetail: React.FC = () => {
   }, [raffleId]);
 
   const handleBuyTickets = () => {
-    // Lógica para comprar números
-    alert('Comprar números no implementado');
+    if (onBuyTickets && raffle) {
+      onBuyTickets(raffle);
+    }
   };
 
   const formatDate = (dateString: string) => {
