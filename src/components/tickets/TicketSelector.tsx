@@ -350,19 +350,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
     );
   }
 
-  if (purchase.status !== 'paid') {
-    return (
-      <div className="text-center py-8 space-y-4">
-        <Lock className="w-16 h-16 text-gray-400 mx-auto" />
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900">Pago Pendiente</h3>
-          <p className="text-gray-600">
-            Debes completar el pago antes de seleccionar tus números
-          </p>
-        </div>
-      </div>
-    );
-  }
+  
 
   if (emailSent) {
     return (
