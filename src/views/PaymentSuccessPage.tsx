@@ -14,6 +14,18 @@ export const PaymentSuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
+  // Loguear todos los parámetros de la URL
+  React.useEffect(() => {
+    const paramsObj: Record<string, string | null> = {};
+    for (const [key, value] of searchParams.entries()) {
+      paramsObj[key] = value;
+    }
+    console.log('Parámetros de la URL:', {
+      ...paramsObj,
+      purchaseId: urlPurchaseId
+    });
+  }, [searchParams, urlPurchaseId]);
+
   // Get purchaseId from either URL path or external_reference query param
   const purchaseId = urlPurchaseId || searchParams.get('external_reference');
 

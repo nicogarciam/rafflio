@@ -61,7 +61,7 @@ const AppContent: React.FC = () => {
           
           <Route path="/purchases" element={<PurchasesView purchases={purchases} raffles={raffles} />} />
           
-          <Route path="/raffle/view/:raffleId" element={<RaffleDetailView />} />
+          <Route path="/raffle/view/:raffleId" element={<RaffleDetailView onBuyTickets={handleBuyTickets} />} />
           
           <Route path="/admin/users" element={
             <RequireAuth>

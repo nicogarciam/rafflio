@@ -48,7 +48,7 @@ export class MercadoPagoService {
           }
         },
         external_reference: purchaseId,
-        notification_url: `${apiUrl}/api/payment/webhook`,
+        notification_url: `${apiUrl}/payment/webhook`,
         back_urls: {
           success: `${baseUrl}/payment/${purchaseId}/success`,
           failure: `${baseUrl}/payment/${purchaseId}/failure`,
