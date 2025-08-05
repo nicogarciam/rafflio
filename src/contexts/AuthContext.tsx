@@ -19,7 +19,6 @@ export const useAuth = () => {
   }
   return context;
 };
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Intentar login con Supabase primero
       const response = await authService.login(credentials);
+      console.log('AuthService login response:', response);
 
       if (response.success && response.user) {
         setUser(response.user);
@@ -68,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: true };
       } else {
         // Fallback a credenciales hardcodeadas para desarrollo
+        console.log('Falling back to hardcoded credentials for login');
         const fallbackResponse = await authService.loginWithHardcodedCredentials(credentials);
 
         if (fallbackResponse.success && fallbackResponse.user) {
@@ -94,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Error during logout:', error);
     } finally {
+      console.log('User logged out');
       setUser(null);
       setError(null);
       localStorage.removeItem('user');

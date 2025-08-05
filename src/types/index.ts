@@ -50,8 +50,10 @@ export interface Purchase {
 }
 
 export interface User {
-  id: string;
+  id?: string;
   email: string;
-  role: 'ADMIN' | 'USER';
+  role: string;
   name: string;
+  password?: string; // Optional, only for new user creation
+  isActive: boolean;
 }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -11,6 +12,7 @@ export const LoginForm: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +21,10 @@ export const LoginForm: React.FC = () => {
 
     try {
       const result = await login(email, password);
-      if (!result.success) {
+      console.log('Login result:', result);
+      if (result.success) {
+        navigate('/admin');
+      } else {
         setError(result.error || 'Credenciales inválidas');
       }
     } catch {

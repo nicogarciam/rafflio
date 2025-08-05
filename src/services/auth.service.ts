@@ -1,3 +1,5 @@
+import { comparePassword } from '../lib/hash';
+import { userService } from './user.service';
 import { User } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -16,74 +18,71 @@ export interface RegisterData {
   email: string;
   password: string;
   name: string;
+  role: string;
+  isActive?: boolean;
 }
 
 class AuthService {
+  
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     if (!supabase) {
       return { success: false, error: 'Supabase no está configurado' };
     }
-
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.email,
-        password: credentials.password,
-      });
-
+      // Buscar usuario por email en la tabla users
+      const { data, error } = await supabase.from('users').select('*').eq('email', credentials.email).single();
       if (error) {
-        return { success: false, error: error.message };
+        console.error('Error consultando usuario:', error);
+        return { success: false, error: 'Error consultando usuario. Intente más tarde.' };
       }
-
-      if (data.user) {
-        const user: User = {
-          id: data.user.id,
-          email: data.user.email!,
-          name: data.user.user_metadata?.name || 'Usuario',
-          role: data.user.user_metadata?.role || 'USER',
-        };
-        return { success: true, user };
+      if (!data) {
+        return { success: false, error: 'Usuario o contraseña incorrectos' };
       }
-
-      return { success: false, error: 'Usuario no encontrado' };
-    } catch (error) {
-      return { success: false, error: 'Error de autenticación' };
+      // Forzar tipos correctos
+      const userData = data as {
+        id: string;
+        email: string;
+        name: string;
+        role: string;
+        is_active: boolean;
+        password_hash: string;
+      };
+      // Comparar password
+      const match = await comparePassword(credentials.password, userData.password_hash);
+      if (!match) {
+        return { success: false, error: 'Usuario o contraseña incorrectos' };
+      }
+      // Verificar si está activo
+      if (userData.is_active === false) {
+        return { success: false, error: 'El usuario está inactivo. Contacte al administrador.' };
+      }
+      // Construir objeto User
+      const user: User = {
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        role: userData.role,
+        isActive: userData.is_active
+      };
+      return { success: true, user };
+    } catch (error: any) {
+      console.error('Error de autenticación:', error);
+      return { success: false, error: error?.message || 'Error de autenticación. Intente más tarde.' };
     }
   }
 
   async register(userData: RegisterData): Promise<AuthResponse> {
-    if (!supabase) {
-      return { success: false, error: 'Supabase no está configurado' };
-    }
-
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const user = await userService.createUser({
         email: userData.email,
+        name: userData.name,
         password: userData.password,
-        options: {
-          data: {
-            name: userData.name,
-            role: 'USER',
-          },
-        },
+        role: userData.role as 'ADMIN' | 'USER',
+        isActive: userData.isActive ?? true,
       });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      if (data.user) {
-        const user: User = {
-          id: data.user.id,
-          email: data.user.email!,
-          name: userData.name,
-          role: 'USER',
-        };
-        return { success: true, user };
-      }
-
-      return { success: false, error: 'Error al crear usuario' };
-    } catch (error) {
-      return { success: false, error: 'Error de registro' };
+      return { success: true, user };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Error de registro' };
     }
   }
 
@@ -114,6 +113,7 @@ class AuthService {
           email: user.email!,
           name: user.user_metadata?.name || 'Usuario',
           role: user.user_metadata?.role || 'USER',
+          isActive: user.user_metadata?.isActive ?? true,
         };
       }
       
@@ -150,7 +150,8 @@ class AuthService {
         id: '1',
         email: 'admin@admin.com',
         role: 'ADMIN',
-        name: 'Administrator'
+        name: 'Administrator',
+        isActive: true
       };
       return { success: true, user: adminUser };
     }
@@ -171,6 +172,7 @@ class AuthService {
           email: session.user.email!,
           name: session.user.user_metadata?.name || 'Usuario',
           role: session.user.user_metadata?.role || 'USER',
+          isActive: session.user.user_metadata?.isActive ?? true,
         };
         callback(user);
       } else {

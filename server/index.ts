@@ -12,6 +12,8 @@ import type { Socket } from 'socket.io';
 import { PaymentSearchOptions } from "mercadopago/dist/clients/payment/search/types";
 import { MerchantOrderSearchOptions } from "mercadopago/dist/clients/merchantOrder/search/types";
 const { createClient } = require('@supabase/supabase-js');
+const nodemailer = require('nodemailer');
+
 require('dotenv').config();
 
 const PORT = process.env.PORT || 4000;
@@ -229,6 +231,40 @@ app.post('/api/payment/preference-by-ref', async (req: Request, res: Response) =
   } catch (error: any) {
     console.error('Error getting Preference by preferenceId:', error);
     res.status(500).json({ error: error.message || 'Error al obtener Preference por preferenceId' });
+  }
+});
+
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail', // O el servicio SMTP que uses
+  auth: {
+    user: process.env.SMTP_USER, // tu email
+    pass: process.env.SMTP_PASS, // tu password o app password
+  },
+});
+
+app.post('/api/send-purchase-link', async (req: any, res: any) => {
+  const { to, purchaseId } = req.body;
+  if (!to || !purchaseId) {
+    return res.status(400).json({ error: 'Faltan datos' });
+  }
+  const url = `${process.env.FRONTEND_URL || 'https://tudominio.com'}/payment/${purchaseId}/success`;
+
+  try {
+    await transporter.sendMail({
+      from: '"Rafflio" <no-reply@rafflio.com>',
+      to,
+      subject: '¡Gracias por tu compra! Selecciona tus números',
+      html: `
+        <h2>¡Gracias por tu compra!</h2>
+        <p>Puedes seleccionar tus números de la rifa en el siguiente enlace:</p>
+        <a href="${url}">${url}</a>
+        <p>¡Mucha suerte!</p>
+      `,
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'No se pudo enviar el email' });
   }
 });
 

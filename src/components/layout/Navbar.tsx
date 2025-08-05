@@ -4,12 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
 import { Link } from 'react-router-dom';
 
-interface NavbarProps {
-  currentView: string;
-  onViewChange: (view: string) => void;
-}
-
-export const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange }) => {
+export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
 
   return (
@@ -21,42 +16,40 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange }) => 
               <Ticket className="w-8 h-8 text-blue-600" />
               <h1 className="text-xl font-bold text-gray-900">Rafflio</h1>
             </div>
-            
             <div className="hidden md:flex space-x-4">
-              <button
-                onClick={() => onViewChange('raffles')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  currentView === 'raffles' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900'
-                }`}
+              <Link
+                to="/"
+                className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900"
               >
                 Rifas Activas
-              </button>
-              <Link to="/test-mercadopago">Test MercadoPago</Link>
+              </Link>
               {user?.role === 'ADMIN' && (
                 <>
-                  <button
-                    onClick={() => onViewChange('admin')}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      currentView === 'admin' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                  <Link
+                    to="/admin"
+                    className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900"
                   >
                     <Settings className="w-4 h-4 inline mr-1" />
                     Administración
-                  </button>
-                  <button
-                    onClick={() => onViewChange('purchases')}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      currentView === 'purchases' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                  </Link>
+                  <Link
+                    to="/admin/users"
+                    className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900"
+                  >
+                    <Users className="w-4 h-4 inline mr-1" />
+                    Gestión de Usuarios
+                  </Link>
+                  <Link
+                    to="/purchases"
+                    className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900"
                   >
                     <Users className="w-4 h-4 inline mr-1" />
                     Compras
-                  </button>
+                  </Link>
                 </>
               )}
             </div>
           </div>
-
           <div className="flex items-center space-x-4">
             {user ? (
               <div className="flex items-center space-x-3">
@@ -73,12 +66,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange }) => 
                 </Button>
               </div>
             ) : (
-              <Button
-                onClick={() => onViewChange('login')}
-                size="sm"
-              >
-                Iniciar Sesión
-              </Button>
+              <Link to="/login">
+                <Button size="sm">Iniciar Sesión</Button>
+              </Link>
             )}
           </div>
         </div>
