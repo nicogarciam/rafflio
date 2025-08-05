@@ -320,6 +320,40 @@ io.on('connection', (socket: Socket) => {
 
 
 
+// Endpoint para enviar email de confirmación con premios y números seleccionados
+app.post('/api/send-confirmation-email', async (req: any, res: any) => {
+  const { to, purchaseId, numbers, prizes } = req.body;
+  if (!to || !purchaseId || !numbers || !prizes) {
+    return res.status(400).json({ error: 'Faltan datos' });
+  }
+  try {
+    const numbersList = Array.isArray(numbers) ? numbers.join(', ') : numbers;
+    const prizesHtml = Array.isArray(prizes)
+      ? prizes.map((p: any, i: number) => `<li><strong>${i + 1}°:</strong> ${p.name} - ${p.description}</li>`).join('')
+      : '';
+    const url = `${process.env.FRONTEND_URL || 'https://tudominio.com'}/payment/${purchaseId}/success`;
+    await transporter.sendMail({
+      from: 'Rafflio <no-reply@rafflio.com>',
+      to,
+      subject: 'Confirmación de Números y Premios - Rafflio',
+      html: `
+        <h2>¡Números confirmados!</h2>
+        <p>Gracias por participar. Estos son tus números seleccionados:</p>
+        <p><strong>${numbersList}</strong></p>
+        <h3>Premios de la rifa:</h3>
+        <ul>${prizesHtml}</ul>
+        <p>Puedes ver tu compra y seleccionar tus números en: <a href="${url}">${url}</a></p>
+        <p>¡Mucha suerte!</p>
+      `,
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'No se pudo enviar el email de confirmación' });
+  }
+});
+
+
+
 app.post('/api/payment/webhook', async (req: Request, res: Response) => {
   const { data, type } = req.body;
   console.log('SERVER: Webhook received:', type, data);

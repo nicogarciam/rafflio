@@ -129,7 +129,7 @@ export class MercadoPagoService {
 
   /** Consulta un merchant order completo */
   async getMerchantOrderInfo(merchantOrderId: string) {
-    const res = await fetch(`${config.app.apiUrl}/api/payment/merchant-order-info`, {
+    const res = await fetch(`${config.app.apiUrl}/payment/merchant-order-info`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ merchantOrderId })
@@ -141,7 +141,7 @@ export class MercadoPagoService {
 
   /** Consulta un merchant order completo */
   async getPaymentStatusByMerchantOrder(merchantOrderId: string) {
-    const res = await fetch(`${config.app.apiUrl}/api/payment/status-by-merchant-order`, {
+    const res = await fetch(`${config.app.apiUrl}/payment/status-by-merchant-order`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ merchantOrderId })

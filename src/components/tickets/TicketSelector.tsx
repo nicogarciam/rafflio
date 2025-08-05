@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { useRaffle } from '../../contexts/RaffleContext';
 import { CheckCircle, Circle, Lock, Sparkles, Mail, Wallet } from 'lucide-react';
 import { mercadoPagoService } from '../../services/mercadopago';
+import { sendConfirmationEmail, sendPurchaseLinkEmail } from '../../services/email.service';
 import { Purchase, Ticket } from '../../types';
 import { JSX } from 'react/jsx-runtime';
 
@@ -52,6 +53,21 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
       setIsVerifying(true);
       setPaymentError(null);
       try {
+        // 0. Verificar paymentInfo antes de consultar la compra
+        if (paymentInfo?.payment_id && paymentInfo?.status === 'approved') {
+          setValidationType('Validando pago recibido en la URL');
+          setValidationStep('Consultando el pago en MercadoPago por payment_id');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const info = await mercadoPagoService.getPaymentInfo(paymentInfo.payment_id);
+          if (info.status === 'approved') {
+            setIsVerifying(false);
+            setPaymentError(null);
+            setShowSuccess(true);
+            stopPolling = true;
+            return;
+          }
+        }
+
         // 1. Consultar purchase
         setValidationType('Consultando compra...');
         setValidationStep('Buscando la compra en la base de datos');
@@ -211,14 +227,25 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
 
       if (maxSelections === selectedNumbers.length) {
         await updatePurchaseStatus(purchaseId, 'confirmed');
-        setPurchase(await getPurchaseById(purchaseId));
+        const updatedPurchase = await getPurchaseById(purchaseId);
+        setPurchase(updatedPurchase);
+        // Enviar email de selección de números y premios
+        if (updatedPurchase?.email && raffle) {
+          try {
+            await sendPurchaseLinkEmail(updatedPurchase.email, purchaseId);
+            await sendConfirmationEmail(
+              updatedPurchase.email,
+              purchaseId,
+              selectedNumbers,
+              raffle.prizes
+            );
+            setEmailSent(true);
+          } catch (err) {
+            console.error('Error enviando email de confirmación:', err);
+          }
+        }
       }
-      // Simular envío de email
-      // setTimeout(() => {
-      //   setEmailSent(true);
-      //   setLoading(false);
-      // }, 1000);
-
+      setLoading(false);
     } catch (error) {
       console.error('Error confirming selection:', error);
       setLoading(false);

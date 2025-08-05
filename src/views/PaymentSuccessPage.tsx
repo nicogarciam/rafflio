@@ -30,6 +30,20 @@ export const PaymentSuccessPage: React.FC = () => {
   const purchaseId = urlPurchaseId || searchParams.get('external_reference');
 
   // Get all payment params
+/*   {
+    "collection_id": "121153036802",
+    "collection_status": "approved",
+    "payment_id": "121153036802",
+    "status": "approved",
+    "external_reference": "14018284-779f-42b5-80e0-b5f17d552a33",
+    "payment_type": "account_money",
+    "merchant_order_id": "32942451631",
+    "preference_id": "54486551-5c1212f5-d6fd-4240-8616-028a935642ce",
+    "site_id": "MLA",
+    "processing_mode": "aggregator",
+    "merchant_account_id": "null",
+    "purchaseId": "14018284-779f-42b5-80e0-b5f17d552a33"
+} */
   const paymentParams: PaymentParams = {
     payment_id: searchParams.get('payment_id') || undefined,
     status: searchParams.get('status') || undefined,
