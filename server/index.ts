@@ -16,7 +16,7 @@ const nodemailer = require('nodemailer');
 
 require('dotenv').config();
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4000 ;
 const baseUrl = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
 
 const app = express();
@@ -38,10 +38,6 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Almacena conexiones por purchaseId
 const purchaseSockets = new Map();
-
-
-
-
 
 app.post('/api/payment/payment-info', async (req: Request, res: Response) => {
   try {
@@ -248,7 +244,7 @@ app.post('/api/send-purchase-link', async (req: any, res: any) => {
   if (!to || !purchaseId) {
     return res.status(400).json({ error: 'Faltan datos' });
   }
-  const url = `${process.env.FRONTEND_URL || 'https://tudominio.com'}/payment/${purchaseId}/success`;
+  const url = `${process.env.APP_BASE_URL}/payment/${purchaseId}/success`;
 
   try {
     await transporter.sendMail({
@@ -318,8 +314,6 @@ io.on('connection', (socket: Socket) => {
   });
 });
 
-
-
 // Endpoint para enviar email de confirmación con premios y números seleccionados
 app.post('/api/send-confirmation-email', async (req: any, res: any) => {
   const { to, purchaseId, numbers, prizes } = req.body;
@@ -331,7 +325,7 @@ app.post('/api/send-confirmation-email', async (req: any, res: any) => {
     const prizesHtml = Array.isArray(prizes)
       ? prizes.map((p: any, i: number) => `<li><strong>${i + 1}°:</strong> ${p.name} - ${p.description}</li>`).join('')
       : '';
-    const url = `${process.env.FRONTEND_URL || 'https://tudominio.com'}/payment/${purchaseId}/success`;
+    const url = `${process.env.APP_BASE_URL}/payment/${purchaseId}/success`;
     await transporter.sendMail({
       from: 'Rafflio <no-reply@rafflio.com>',
       to,
@@ -353,18 +347,31 @@ app.post('/api/send-confirmation-email', async (req: any, res: any) => {
 });
 
 
-
+/* {
+ "id": 12345,
+ "live_mode": true,
+ "type": "payment",
+ "date_created": "2015-03-25T10:04:58.396-04:00",
+ "user_id": 44444,
+ "api_version": "v1",
+ "action": "payment.created",
+ "data": {
+     "id": "999999999" //payment id
+ }
+} */
 app.post('/api/payment/webhook', async (req: Request, res: Response) => {
   const { data, type } = req.body;
-  console.log('SERVER: Webhook received:', type, data);
+  console.log('SERVER: Webhook received:', req.body);
+  console.log('data: type:', data, type);
 
   try {
     // 1. Consultar el estado real del pago en MercadoPago
     const paymentId = data.id;
-    const payment = await mercadoPagoClient.get(`/v1/payments/${paymentId}`);
-    const paymentStatus = payment.body.status; // 'approved', 'rejected', etc.
-    const preferenceId = payment.body.preference_id;
-    const purchaseId = payment.body.external_reference;
+    const paymentMP = new Payment(mercadoPagoClient);
+    const payment = await paymentMP.get({ id: paymentId });
+    const paymentStatus = payment.status; // 'approved', 'rejected', etc.
+    const purchaseId = payment.external_reference;
+    console.log(`Payment ID: ${paymentId}, Status: ${paymentStatus}, Purchase ID: ${purchaseId}`);
 
     // 2. Buscar la compra en Supabase por preferenceId o external_reference
     const { data: purchases, error } = await supabase
@@ -378,7 +385,7 @@ app.post('/api/payment/webhook', async (req: Request, res: Response) => {
       return res.status(500).send('Supabase error');
     }
     if (!purchases || purchases.length === 0) {
-      console.warn('No purchase found for preferenceId:', preferenceId);
+      console.warn('No purchase found for purchaseId:', purchaseId);
       return res.status(404).send('Purchase not found');
     }
 

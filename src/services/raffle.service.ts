@@ -430,6 +430,39 @@ class RaffleService {
     }
   }
 
+  async updatePurchaseStatusAndPayment(purchaseId: string, status: Purchase['status'], paymentId: string): Promise<boolean> {
+    if (!supabase) {
+      const purchase = this.mockPurchases.find(p => p.id === purchaseId);
+      if (purchase) {
+        purchase.status = status;
+        purchase.paymentId = paymentId;
+        return true;
+      }
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('purchases')
+        .update({ 
+          status,
+          payment_id: paymentId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', purchaseId);
+
+      if (error) {
+        console.error('Error updating purchase status and payment:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in updatePurchaseStatusAndPayment:', error instanceof Error ? error.message : String(error));
+      return false;
+    }
+  }
+
   async updatePurchasePreferenceId(purchaseId: string, preferenceId: string): Promise<boolean> {
     if (!supabase) {
       const purchase = this.mockPurchases.find(p => p.id === purchaseId);

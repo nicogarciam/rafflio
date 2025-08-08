@@ -1,18 +1,35 @@
 import React from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { TicketSelector } from '../components/tickets/TicketSelector';
+import { mercadoPagoService } from '../services/mercadopago';
+import { raffleService } from '../services/raffle.service';
 
 interface PaymentParams {
   payment_id?: string;
   status?: string;
   external_reference?: string;
   merchant_order_id?: string;
+  preference_id?: string;
 }
 
 export const PaymentSuccessPage: React.FC = () => {
   const { purchaseId: urlPurchaseId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+ // Get purchaseId from either URL path or external_reference query param
+  const purchaseId = urlPurchaseId || searchParams.get('external_reference');
+// Get all payment params
+  const paymentParams: PaymentParams = {
+    payment_id: searchParams.get('payment_id') || undefined,
+    status: searchParams.get('status') || undefined,
+    external_reference: searchParams.get('external_reference') || undefined,
+    merchant_order_id: searchParams.get('merchant_order_id') || undefined,
+    preference_id: searchParams.get('preference_id') || undefined,
+  };
+
 
   // Loguear todos los parámetros de la URL
   React.useEffect(() => {
@@ -24,10 +41,32 @@ export const PaymentSuccessPage: React.FC = () => {
       ...paramsObj,
       purchaseId: urlPurchaseId
     });
-  }, [searchParams, urlPurchaseId]);
 
-  // Get purchaseId from either URL path or external_reference query param
-  const purchaseId = urlPurchaseId || searchParams.get('external_reference');
+    const verifyAndUpdatePurchase = async () => {
+      if (!purchaseId || !paymentParams.payment_id) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const paymentMP = await mercadoPagoService.getPaymentInfo(paymentParams.payment_id);
+        if (!paymentMP.ok || paymentMP.data.status !== 'approved') {
+          setError('El pago no fue aprobado o no se pudo verificar.');
+        } else {
+          // Actualizar el purchase en la base de datos
+          await raffleService.updatePurchaseStatusAndPayment(purchaseId, 'paid', paymentParams.payment_id);
+          if (paymentParams.preference_id) {
+            await raffleService.updatePurchasePreferenceId(purchaseId, paymentParams.preference_id);
+          }
+        }
+      } catch (err) {
+        setError('Error al verificar el pago.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    verifyAndUpdatePurchase();
+  }, [purchaseId, paymentParams.payment_id, paymentParams.preference_id]);
+
 
   // Get all payment params
 /*   {
@@ -44,12 +83,6 @@ export const PaymentSuccessPage: React.FC = () => {
     "merchant_account_id": "null",
     "purchaseId": "14018284-779f-42b5-80e0-b5f17d552a33"
 } */
-  const paymentParams: PaymentParams = {
-    payment_id: searchParams.get('payment_id') || undefined,
-    status: searchParams.get('status') || undefined,
-    external_reference: searchParams.get('external_reference') || undefined,
-    merchant_order_id: searchParams.get('merchant_order_id') || undefined,
-  };
 
   if (!purchaseId) {
     return (

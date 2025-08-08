@@ -15,7 +15,7 @@ export const config = {
   // Aplicación
   app: {
     name: import.meta.env.VITE_APP_NAME || 'Rafflio',
-    baseUrl: import.meta.env.VITE_APP_BASE_URL || 'https://localhost:3000',
+    baseUrl: import.meta.env.VITE_APP_BASE_URL || 'https://localhost:5173',
     apiUrl: import.meta.env.VITE_API_BASE_URL || 'https://localhost:4000/api',
   },
 

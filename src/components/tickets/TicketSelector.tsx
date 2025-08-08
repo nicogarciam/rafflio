@@ -15,6 +15,7 @@ interface TicketSelectorProps {
     status?: string;
     external_reference?: string;
     merchant_order_id?: string;
+    preference_id?: string;
   };
   onClose: () => void;
 }
@@ -53,27 +54,13 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
       setIsVerifying(true);
       setPaymentError(null);
       try {
-        // 0. Verificar paymentInfo antes de consultar la compra
-        if (paymentInfo?.payment_id && paymentInfo?.status === 'approved') {
-          setValidationType('Validando pago recibido en la URL');
-          setValidationStep('Consultando el pago en MercadoPago por payment_id');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const info = await mercadoPagoService.getPaymentInfo(paymentInfo.payment_id);
-          if (info.status === 'approved') {
-            setIsVerifying(false);
-            setPaymentError(null);
-            setShowSuccess(true);
-            stopPolling = true;
-            return;
-          }
-        }
 
-        // 1. Consultar purchase
+        // 0. Consultar purchase
         setValidationType('Consultando compra...');
         setValidationStep('Buscando la compra en la base de datos');
         console.log(`🔍 Consultando compra con ID: ${purchaseId}`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
         const p = await getPurchaseById(purchaseId);
+        await new Promise(resolve => setTimeout(resolve, 1000));
         if (!p) {
           setPaymentError('No se encontró la compra solicitada');
           stopPolling = true;
@@ -81,6 +68,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           return;
         }
         setPurchase(p);
+
         // Si la compra ya está confirmada, mostrar mensaje y no permitir continuar
         if (p.status === 'confirmed') {
           setSelectedNumbers(p.tickets?.map(t => t.number) || []);
@@ -90,39 +78,20 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           stopPolling = true;
           return;
         }
+        
         setValidationType('Compra encontrada');
         setValidationStep('¡La compra fue encontrada correctamente!');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setValidationType('Validando el pago con MercadoPago');
-        setValidationStep('Iniciando validación con MercadoPago');
-        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // 2. Si tiene paymentId, consultar PaymentInfo
-        console.log(`🔍 Consultando PaymentInfo con ID: ${p.paymentId}`);
-        if (p.paymentId) {
-          setValidationType('Validando pago por Payment ID');
-          setValidationStep('Consultando el estado del pago en MercadoPago');
+        // 0. Verificar paymentInfo antes de consultar la compra
+        const paymentId = paymentInfo?.payment_id || p.paymentId;
+        if (paymentId) {
+          setValidationType('Validando pago recibido');
+          setValidationStep('Consultando el pago en MercadoPago');
+          const info = await mercadoPagoService.getPaymentInfo(paymentId);
           await new Promise(resolve => setTimeout(resolve, 1000));
-          const info = await mercadoPagoService.getPaymentInfo(p.paymentId);
           if (info.status === 'approved') {
             setIsVerifying(false);
             setPaymentError(null);
-            setShowSuccess(true);
-            stopPolling = true;
-            return;
-          }
-        }
-
-        // 3. Si existe merchant_order_id, consultar merchantOrderInfo
-        console.log(`🔍 Consultando MerchantOrderInfo con ID: ${paymentInfo?.merchant_order_id}`);
-        if (paymentInfo?.merchant_order_id) {
-          setValidationType('Validando pago por Merchant Order');
-          setValidationStep('Consultando la orden en MercadoPago');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const mo = await mercadoPagoService.getMerchantOrderInfo(paymentInfo.merchant_order_id);
-          const approved = mo.payments?.find((pay: any) => pay.status === 'approved');
-          if (approved) {
-            setIsVerifying(false);
             setShowSuccess(true);
             stopPolling = true;
             return;
@@ -137,15 +106,16 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         setFailedAttempts(attempts);
         setPaymentError('Pago aún no confirmado, reintentando en 10s...');
         setCountdown(10);
-   
+
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         if (attempts >= 3) {
-          setFailedPaymentValidation(true);
+          
           setValidationType('Consultando preferencia de pago');
           setValidationStep('Buscando el link de pago en MercadoPago');
           // Consultar preference con external_reference
-          const preferenceId = p.preferenceId || paymentInfo?.external_reference;
+          const preferenceId = p.preferenceId || paymentInfo?.preference_id;
+          setFailedPaymentValidation(true);
           if (preferenceId) {
             try {
               console.log(`🔍 Consultando preferencia de pago con ID: ${preferenceId}`);
@@ -186,6 +156,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           return prev - 1;
         });
       }, 1000);
+      
       verificationTimer = setInterval(() => {
         if (!stopPolling && !showSuccess && !showPreference && !preferenceError) {
           fetchPurchaseAndPayment();
@@ -232,7 +203,6 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         // Enviar email de selección de números y premios
         if (updatedPurchase?.email && raffle) {
           try {
-            await sendPurchaseLinkEmail(updatedPurchase.email, purchaseId);
             await sendConfirmationEmail(
               updatedPurchase.email,
               purchaseId,
@@ -266,7 +236,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
     raffle.tickets.forEach(ticket => {
       const status = getTicketStatus(ticket.number);
       // Render each ticket button
-      
+
       tickets.push(
         <button
           key={ticket.id}
@@ -369,15 +339,6 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
     );
   }
 
-  if (!purchase || !raffle || !priceTier) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-600">Error: No se pudo cargar la información de la compra</p>
-      </div>
-    );
-  }
-
-  
 
   if (emailSent) {
     return (
@@ -412,7 +373,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-800">
-            <strong>Confirmación enviada:</strong> Revisa tu email ({purchase.email}) para ver todos los detalles de tu compra.
+            <strong>Confirmación enviada:</strong> Revisa tu email ({purchase?.email ?? ''}) para ver todos los detalles de tu compra.
           </p>
         </div>
 
@@ -483,24 +444,6 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
       </div>
     );
   }
-  // Pantalla de error si no hay external_reference
-  if (preferenceError) {
-    return (
-      <div className="text-center py-12 space-y-8">
-        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-          <Lock className="w-12 h-12 text-red-600" />
-        </div>
-        <h2 className="text-2xl font-bold text-red-900">No se pudo encontrar tu pago</h2>
-        <p className="text-gray-700 text-lg max-w-md mx-auto">
-          {preferenceError}
-        </p>
-        <Button className="w-full max-w-xs mx-auto mt-4" onClick={onClose}>
-          Cerrar
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <Card>
@@ -512,8 +455,8 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-gray-900">{raffle.title}</p>
-                <p className="text-sm text-gray-600">Comprador: {purchase.fullName}</p>
+                <p className="font-medium text-gray-900">{raffle?.title}</p>
+                <p className="text-sm text-gray-600">Comprador: {purchase?.fullName}</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-600">Selecciona exactamente:</p>
