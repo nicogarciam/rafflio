@@ -41,8 +41,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
 
   const raffle = purchase ? getRaffleById(purchase.raffleId) : null;
   const priceTier = raffle?.priceTiers.find(t => t.id === purchase?.priceTierId);
-
-  const maxSelections = priceTier?.ticketCount || 0;
+  const [maxSelections, setMaxSelections] = useState(0);
 
   useEffect(() => {
     let verificationTimer: NodeJS.Timeout;
@@ -68,6 +67,16 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           return;
         }
         setPurchase(p);
+        console.log('Compra encontrada:', p);
+        if (p.priceTier && p.priceTier.ticketCount) {
+          setMaxSelections(p.priceTier.ticketCount);
+        }
+        
+        if (p.status === 'paid' && p.tickets && p.tickets.length === p.priceTier?.ticketCount) {
+        
+          p.status = 'confirmed'; // Simular que ya está confirmada si tiene todos los tickets
+          updatePurchaseStatus(p.id, 'confirmed');
+        }
 
         // Si la compra ya está confirmada, mostrar mensaje y no permitir continuar
         if (p.status === 'confirmed') {
@@ -78,7 +87,11 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           stopPolling = true;
           return;
         }
-        
+
+
+
+
+
         setValidationType('Compra encontrada');
         setValidationStep('¡La compra fue encontrada correctamente!');
 
@@ -110,7 +123,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         if (attempts >= 3) {
-          
+
           setValidationType('Consultando preferencia de pago');
           setValidationStep('Buscando el link de pago en MercadoPago');
           // Consultar preference con external_reference
@@ -156,7 +169,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           return prev - 1;
         });
       }, 1000);
-      
+
       verificationTimer = setInterval(() => {
         if (!stopPolling && !showSuccess && !showPreference && !preferenceError) {
           fetchPurchaseAndPayment();

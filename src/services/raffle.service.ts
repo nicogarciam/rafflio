@@ -560,13 +560,21 @@ class RaffleService {
         .from('purchases')
         .select(`
           *,
-          tickets (*)
+          tickets (*),
+          price_tiers:price_tier_id (*)
         `)
         .eq('id', purchaseId)
         .single();
 
       if (error) throw error;
-      return this.transformPurchaseData(purchase);
+      // price_tiers vendrá como un array con un solo elemento (por ser relación 1:1)
+      let priceTierRaw = Array.isArray(purchase.price_tiers) ? purchase.price_tiers[0] : purchase.price_tiers;
+      let priceTier = priceTierRaw ? this.transformPriceTiersData([priceTierRaw])[0] : undefined;
+      const purchaseWithPriceTier = {
+        ...purchase,
+        price_tier: priceTier
+      };
+      return this.transformPurchaseData(purchaseWithPriceTier);
     } catch (error) {
       console.error('Error in getPurchaseById:', error);
       throw error;
@@ -638,6 +646,7 @@ class RaffleService {
       preferenceId: data.preference_id || '',
       raffleId: data.raffle_id,
       priceTierId: data.price_tier_id,
+      priceTier: data.price_tier || undefined,
       tickets: this.transformTicketsData(data.tickets || []),
       createdAt: data.created_at,
     };

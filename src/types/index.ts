@@ -47,6 +47,7 @@ export interface Purchase {
   createdAt: string;
   raffleId: string;
   priceTierId: string;
+  priceTier?: PriceTier; // Opcional, para incluir detalles del tier de precio
 }
 
 export interface User {

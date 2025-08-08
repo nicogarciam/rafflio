@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { TicketSelector } from '../components/tickets/TicketSelector';
 import { mercadoPagoService } from '../services/mercadopago';
 import { raffleService } from '../services/raffle.service';
+import { useRaffle } from '../contexts/RaffleContext';
 
 interface PaymentParams {
   payment_id?: string;
@@ -18,6 +19,7 @@ export const PaymentSuccessPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const { getPurchaseById, getRaffleById, updateTickets, updatePurchaseStatus } = useRaffle();
 
   // Get purchaseId from either URL path or external_reference query param
   const purchaseId = urlPurchaseId || searchParams.get('external_reference');
@@ -33,14 +35,6 @@ export const PaymentSuccessPage: React.FC = () => {
 
   // Loguear todos los parámetros de la URL
   React.useEffect(() => {
-    const paramsObj: Record<string, string | null> = {};
-    for (const [key, value] of searchParams.entries()) {
-      paramsObj[key] = value;
-    }
-    console.log('Parámetros de la URL:', {
-      ...paramsObj,
-      purchaseId: urlPurchaseId
-    });
 
     const verifyAndUpdatePurchase = async () => {
       if (!purchaseId || !paymentParams.payment_id) {
@@ -48,13 +42,16 @@ export const PaymentSuccessPage: React.FC = () => {
         return;
       }
       try {
+        const p = await getPurchaseById(purchaseId);
+        if (p?.status === 'confirmed') {
+          setLoading(false);
+          return;
+        } 
         const paymentMP = await mercadoPagoService.getPaymentInfo(paymentParams.payment_id);
-        console.log('Payment MP response:', paymentMP);
+        
 
         if (paymentMP && paymentMP.status === 'approved') {
           // Actualizar el purchase en la base de datos
-          console.log('Actualizando compra con ID:', purchaseId);
-          console.log('Payment params:', paymentParams);
           await raffleService.updatePurchaseStatusAndPayment(purchaseId, 'paid', paymentParams.payment_id);
           if (paymentParams.preference_id) {
             await raffleService.updatePurchasePreferenceId(purchaseId, paymentParams.preference_id);
