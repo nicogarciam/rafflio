@@ -86,13 +86,6 @@ export const LoginForm: React.FC = () => {
                 Iniciar Sesión
               </Button>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
-                <p className="text-sm text-blue-800">
-                  <strong>Credenciales de prueba:</strong><br />
-                  Email: admin@admin.com<br />
-                  Contraseña: admin123
-                </p>
-              </div>
             </form>
           </CardContent>
         </Card>

@@ -2,17 +2,19 @@ import React from 'react';
 import { Users, LogOut, Ticket, Settings } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <nav className="bg-white shadow-lg border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2"
+            onClick={() => navigate('/')}>
               <Ticket className="w-8 h-8 text-blue-600" />
               <h1 className="text-xl font-bold text-gray-900">Rafflio</h1>
             </div>

@@ -315,99 +315,71 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
       )}
 
       {step === 3 && (
-        config.isDevelopment ? (
-          <div className="text-center space-y-6">
-            <h3 className="text-xl font-semibold text-gray-900">Entorno local: Simular pago</h3>
-            <div className="flex justify-center space-x-4 pt-4">
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  await updatePurchaseStatus(purchaseId, 'paid');
-                  handleClose();
-                  navigate(`/payment/${purchaseId}/success`);
-                }}
-              >
-                Simular Pago Exitoso
+        <div className="text-center space-y-6">
+          {paymentStatus !== 'approved' ? (
+            <>
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto animate-spin">
+                <CreditCard className="w-8 h-8 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-blue-900 mb-2">
+                  Procesando tu pago...
+                </h3>
+                <p className="text-gray-600">
+                  Estado actual: <span className="font-mono">{paymentStatus || 'pending'}</span>
+                </p>
+                <p className="text-gray-500 text-sm mt-2">
+                  No cierres esta ventana hasta que el pago sea confirmado.
+                </p>
+              </div>
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+                  <p>{error}</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <CreditCard className="w-8 h-8 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-green-900 mb-2">
+                  ¡Pago Exitoso!
+                </h3>
+                <p className="text-gray-600">
+                  Tu pago ha sido procesado correctamente. Ahora puedes seleccionar tus números.
+                </p>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-2">
+                <p className="text-sm text-green-800">
+                  <strong>Siguiente paso:</strong> Selecciona tus {selectedTier?.ticketCount} números de la suerte
+                </p>
+                <div className="flex flex-col md:flex-row md:items-center gap-2 mt-2">
+                  <span className="text-xs text-green-900 break-all">
+                    URL para elegir tus números:
+                    <br />
+                    <span className="font-mono select-all">{`${window.location.origin}/payment/${purchaseId}/success`}</span>
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/payment/${purchaseId}/success`);
+                    }}
+                  >
+                    Copiar enlace
+                  </Button>
+                </div>
+                <span className="text-xs text-gray-600">También recibirás este enlace por email.</span>
+              </div>
+              <Button onClick={handleClose} className="w-full mt-4">
+                Continuar a Selección de Números
               </Button>
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  await updatePurchaseStatus(purchaseId, 'failed');
-                  handleClose();
-                  navigate('/');
-                }}
-              >
-                Simular Pago Fallido
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center space-y-6">
-            {paymentStatus !== 'approved' ? (
-              <>
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto animate-spin">
-                  <CreditCard className="w-8 h-8 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-blue-900 mb-2">
-                    Procesando tu pago...
-                  </h3>
-                  <p className="text-gray-600">
-                    Estado actual: <span className="font-mono">{paymentStatus || 'pending'}</span>
-                  </p>
-                  <p className="text-gray-500 text-sm mt-2">
-                    No cierres esta ventana hasta que el pago sea confirmado.
-                  </p>
-                </div>
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-                    <p>{error}</p>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                  <CreditCard className="w-8 h-8 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-green-900 mb-2">
-                    ¡Pago Exitoso!
-                  </h3>
-                  <p className="text-gray-600">
-                    Tu pago ha sido procesado correctamente. Ahora puedes seleccionar tus números.
-                  </p>
-                </div>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-2">
-                  <p className="text-sm text-green-800">
-                    <strong>Siguiente paso:</strong> Selecciona tus {selectedTier?.ticketCount} números de la suerte
-                  </p>
-                  <div className="flex flex-col md:flex-row md:items-center gap-2 mt-2">
-                    <span className="text-xs text-green-900 break-all">
-                      URL para elegir tus números:
-                      <br />
-                      <span className="font-mono select-all">{`${window.location.origin}/payment/${purchaseId}/success`}</span>
-                    </span>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/payment/${purchaseId}/success`);
-                      }}
-                    >
-                      Copiar enlace
-                    </Button>
-                  </div>
-                  <span className="text-xs text-gray-600">También recibirás este enlace por email.</span>
-                </div>
-                <Button onClick={handleClose} className="w-full mt-4">
-                  Continuar a Selección de Números
-                </Button>
-              </>
-            )}
-          </div>
-        )
+            </>
+          )}
+        </div>
       )}
     </Modal>
   );
