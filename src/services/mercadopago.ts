@@ -109,14 +109,14 @@ export class MercadoPagoService {
     return await response.json();
   }
 
-  async getPaymentInfo(purchaseId: string) {
+  async getPaymentInfo(paymentId: string) {
     try {
       const response = await fetch(`${config.app.apiUrl}/payment/payment-info`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ purchaseId })
+        body: JSON.stringify({ paymentId })
       });
 
       if (!response.ok) throw new Error('Error al obtener información del pago');

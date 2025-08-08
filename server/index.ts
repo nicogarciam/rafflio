@@ -18,6 +18,7 @@ require('dotenv').config();
 
 const PORT = process.env.PORT || 4000 ;
 const baseUrl = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
+const apiUrl = process.env.API_URL || `http://localhost:${PORT}`;
 
 const app = express();
 app.use(cors());
@@ -232,10 +233,10 @@ app.post('/api/payment/preference-by-ref', async (req: Request, res: Response) =
 
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // O el servicio SMTP que uses
+  service: 'Gmail',
   auth: {
-    user: process.env.SMTP_USER, // tu email
-    pass: process.env.SMTP_PASS, // tu password o app password
+    user: process.env.SMTP_USER, // tu correo de Gmail
+    pass: process.env.SMTP_PASS, // tu contraseña o app password de Gmail
   },
 });
 
@@ -244,11 +245,11 @@ app.post('/api/send-purchase-link', async (req: any, res: any) => {
   if (!to || !purchaseId) {
     return res.status(400).json({ error: 'Faltan datos' });
   }
-  const url = `${process.env.APP_BASE_URL}/payment/${purchaseId}/success`;
+  const url = `${baseUrl}/payment/${purchaseId}/success`;
 
   try {
     await transporter.sendMail({
-      from: '"Rafflio" <no-reply@rafflio.com>',
+      from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
       to,
       subject: '¡Gracias por tu compra! Selecciona tus números',
       html: `
@@ -260,7 +261,41 @@ app.post('/api/send-purchase-link', async (req: any, res: any) => {
     });
     res.json({ success: true });
   } catch (err) {
+    console.error('Error sending purchase email:', err);
     res.status(500).json({ error: 'No se pudo enviar el email' });
+  }
+});
+
+// Endpoint para enviar email de confirmación con premios y números seleccionados
+app.post('/api/send-confirmation-email', async (req: any, res: any) => {
+  const { to, purchaseId, numbers, prizes } = req.body;
+  if (!to || !purchaseId || !numbers || !prizes) {
+    return res.status(400).json({ error: 'Faltan datos' });
+  }
+  try {
+    const numbersList = Array.isArray(numbers) ? numbers.join(', ') : numbers;
+    const prizesHtml = Array.isArray(prizes)
+      ? prizes.map((p: any, i: number) => `<li><strong>${i + 1}°:</strong> ${p.name} - ${p.description}</li>`).join('')
+      : '';
+    const url = `${process.env.APP_BASE_URL}/payment/${purchaseId}/success`;
+    await transporter.sendMail({
+      from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
+      to,
+      subject: 'Confirmación de Números y Premios - Rafflio',
+      html: `
+        <h2>¡Números confirmados!</h2>
+        <p>Gracias por participar. Estos son tus números seleccionados:</p>
+        <p><strong>${numbersList}</strong></p>
+        <h3>Premios de la rifa:</h3>
+        <ul>${prizesHtml}</ul>
+        <p>Puedes ver tu compra y seleccionar tus números en: <a href="${url}">${url}</a></p>
+        <p>¡Mucha suerte!</p>
+      `,
+    });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error sending confirmation email:', err);
+    res.status(500).json({ error: 'No se pudo enviar el email de confirmación' });
   }
 });
 
@@ -314,37 +349,7 @@ io.on('connection', (socket: Socket) => {
   });
 });
 
-// Endpoint para enviar email de confirmación con premios y números seleccionados
-app.post('/api/send-confirmation-email', async (req: any, res: any) => {
-  const { to, purchaseId, numbers, prizes } = req.body;
-  if (!to || !purchaseId || !numbers || !prizes) {
-    return res.status(400).json({ error: 'Faltan datos' });
-  }
-  try {
-    const numbersList = Array.isArray(numbers) ? numbers.join(', ') : numbers;
-    const prizesHtml = Array.isArray(prizes)
-      ? prizes.map((p: any, i: number) => `<li><strong>${i + 1}°:</strong> ${p.name} - ${p.description}</li>`).join('')
-      : '';
-    const url = `${process.env.APP_BASE_URL}/payment/${purchaseId}/success`;
-    await transporter.sendMail({
-      from: 'Rafflio <no-reply@rafflio.com>',
-      to,
-      subject: 'Confirmación de Números y Premios - Rafflio',
-      html: `
-        <h2>¡Números confirmados!</h2>
-        <p>Gracias por participar. Estos son tus números seleccionados:</p>
-        <p><strong>${numbersList}</strong></p>
-        <h3>Premios de la rifa:</h3>
-        <ul>${prizesHtml}</ul>
-        <p>Puedes ver tu compra y seleccionar tus números en: <a href="${url}">${url}</a></p>
-        <p>¡Mucha suerte!</p>
-      `,
-    });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'No se pudo enviar el email de confirmación' });
-  }
-});
+
 
 
 /* {
@@ -394,7 +399,7 @@ app.post('/api/payment/webhook', async (req: Request, res: Response) => {
     // 3. Actualizar el estado de la compra en Supabase
     const { error: updateError } = await supabase
       .from('purchases')
-      .update({ status: paymentStatus, paymentId: paymentId })
+      .update({ status: paymentStatus, payment_id: paymentId })
       .eq('id', purchase.id);
 
     if (updateError) {
@@ -420,5 +425,5 @@ app.post('/api/payment/webhook', async (req: Request, res: Response) => {
 
 
 httpServer.listen(PORT, "0.0.0.0", () => {
-  console.log(`Backend HTTPS + WebSocket listening on ${baseUrl}`);
+  console.log(`Backend HTTPS + WebSocket listening on ${apiUrl}`);
 });

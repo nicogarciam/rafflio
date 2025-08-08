@@ -19,9 +19,9 @@ export const PaymentSuccessPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
- // Get purchaseId from either URL path or external_reference query param
+  // Get purchaseId from either URL path or external_reference query param
   const purchaseId = urlPurchaseId || searchParams.get('external_reference');
-// Get all payment params
+  // Get all payment params
   const paymentParams: PaymentParams = {
     payment_id: searchParams.get('payment_id') || undefined,
     status: searchParams.get('status') || undefined,
@@ -49,14 +49,18 @@ export const PaymentSuccessPage: React.FC = () => {
       }
       try {
         const paymentMP = await mercadoPagoService.getPaymentInfo(paymentParams.payment_id);
-        if (!paymentMP.ok || paymentMP.data.status !== 'approved') {
-          setError('El pago no fue aprobado o no se pudo verificar.');
-        } else {
+        console.log('Payment MP response:', paymentMP);
+
+        if (paymentMP && paymentMP.status === 'approved') {
           // Actualizar el purchase en la base de datos
+          console.log('Actualizando compra con ID:', purchaseId);
+          console.log('Payment params:', paymentParams);
           await raffleService.updatePurchaseStatusAndPayment(purchaseId, 'paid', paymentParams.payment_id);
           if (paymentParams.preference_id) {
             await raffleService.updatePurchasePreferenceId(purchaseId, paymentParams.preference_id);
           }
+        } else {
+          setError('El pago no fue aprobado o no se pudo verificar.');
         }
       } catch (err) {
         setError('Error al verificar el pago.');
@@ -69,20 +73,20 @@ export const PaymentSuccessPage: React.FC = () => {
 
 
   // Get all payment params
-/*   {
-    "collection_id": "121153036802",
-    "collection_status": "approved",
-    "payment_id": "121153036802",
-    "status": "approved",
-    "external_reference": "14018284-779f-42b5-80e0-b5f17d552a33",
-    "payment_type": "account_money",
-    "merchant_order_id": "32942451631",
-    "preference_id": "54486551-5c1212f5-d6fd-4240-8616-028a935642ce",
-    "site_id": "MLA",
-    "processing_mode": "aggregator",
-    "merchant_account_id": "null",
-    "purchaseId": "14018284-779f-42b5-80e0-b5f17d552a33"
-} */
+  /*   {
+      "collection_id": "121153036802",
+      "collection_status": "approved",
+      "payment_id": "121153036802",
+      "status": "approved",
+      "external_reference": "14018284-779f-42b5-80e0-b5f17d552a33",
+      "payment_type": "account_money",
+      "merchant_order_id": "32942451631",
+      "preference_id": "54486551-5c1212f5-d6fd-4240-8616-028a935642ce",
+      "site_id": "MLA",
+      "processing_mode": "aggregator",
+      "merchant_account_id": "null",
+      "purchaseId": "14018284-779f-42b5-80e0-b5f17d552a33"
+  } */
 
   if (!purchaseId) {
     return (
@@ -90,7 +94,7 @@ export const PaymentSuccessPage: React.FC = () => {
         <h3 className="text-xl font-semibold text-gray-900 mb-2">
           Error: No se encontró ID de compra
         </h3>
-        <button 
+        <button
           onClick={() => navigate('/')}
           className="mt-4 text-blue-600 hover:text-blue-800"
         >
