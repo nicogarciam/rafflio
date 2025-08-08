@@ -209,13 +209,16 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
       // Guardar los IDs de los tickets seleccionados en la base de datos
       await updateTickets(purchaseId, selectedTicketIds);
 
-      if (maxSelections === selectedNumbers.length) {
+      console.log('Tickets seleccionados guardados:', selectedTicketIds);
+      console.log('MaxSelections:', maxSelections);
+      if (maxSelections === selectedTicketIds.length) {
         await updatePurchaseStatus(purchaseId, 'confirmed');
         const updatedPurchase = await getPurchaseById(purchaseId);
         setPurchase(updatedPurchase);
         // Enviar email de selección de números y premios
         if (updatedPurchase?.email && raffle) {
           try {
+            console.log('Enviando email de confirmación a:', updatedPurchase.email);
             await sendConfirmationEmail(
               updatedPurchase.email,
               purchaseId,

@@ -365,13 +365,22 @@ io.on('connection', (socket: Socket) => {
  }
 } */
 app.post('/api/payment/webhook', async (req: Request, res: Response) => {
-  const { data, type } = req.body;
+  const { data, type, resource, topic } = req.body;
   console.log('SERVER: Webhook received:', req.body);
   console.log('data: type:', data, type);
-
+  console.log('resource: topic:', resource, topic);
   try {
+    if (!data && !resource) {
+      console.error('Webhook data or type is missing');
+      return res.status(400).send('Webhook data or type is missing');
+    }
     // 1. Consultar el estado real del pago en MercadoPago
-    const paymentId = data.id;
+    var paymentId: any;
+    if (data && data.id && type === 'payment') {
+      paymentId = data.id;
+    } else if (resource && topic === 'payment') {
+      paymentId = resource.id;
+    }
     const paymentMP = new Payment(mercadoPagoClient);
     const payment = await paymentMP.get({ id: paymentId });
     const paymentStatus = payment.status; // 'approved', 'rejected', etc.
