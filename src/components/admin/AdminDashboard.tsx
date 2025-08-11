@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { Plus, TrendingUp, Users, DollarSign, Gift, Calendar, BarChart3 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Modal } from '../ui/Modal';
-import { CreateRaffleForm } from '../raffles/CreateRaffleForm';
 import { useRaffle } from '../../contexts/RaffleContext';
+import { useNavigate } from 'react-router-dom';
 
 export const AdminDashboard: React.FC = () => {
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const { raffles, purchases } = useRaffle();
+  const navigate = useNavigate();
 
   // Calculate statistics
   const totalRaffles = raffles.length;
@@ -37,8 +36,8 @@ export const AdminDashboard: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
           <p className="text-gray-600">Gestiona tus rifas y monitorea las ventas</p>
         </div>
-        
-        <Button onClick={() => setShowCreateForm(true)}>
+
+        <Button onClick={() => navigate('/admin/raffles/new')}>
           <Plus className="w-4 h-4 mr-2" />
           Nueva Rifa
         </Button>
@@ -123,14 +122,14 @@ export const AdminDashboard: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Progreso de ventas</span>
                         <span className="font-medium">{soldPercentage.toFixed(1)}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500"
                           style={{ width: `${soldPercentage}%` }}
                         />
@@ -143,13 +142,13 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                 );
               })}
-              
+
               {raffles.filter(r => r.isActive).length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <Gift className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No hay rifas activas</p>
-                  <Button 
-                    onClick={() => setShowCreateForm(true)}
+                  <Button
+                    onClick={() => navigate('/admin/raffles/new')}
                     variant="outline"
                     size="sm"
                     className="mt-2"
@@ -175,7 +174,7 @@ export const AdminDashboard: React.FC = () => {
               {recentPurchases.map(purchase => {
                 const raffle = raffles.find(r => r.id === purchase.raffleId);
                 const tier = raffle?.priceTiers.find(t => t.id === purchase.priceTierId);
-                
+
                 return (
                   <div key={purchase.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
@@ -196,7 +195,7 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                 );
               })}
-              
+
               {recentPurchases.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -207,15 +206,6 @@ export const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Create Raffle Modal */}
-      <Modal
-        isOpen={showCreateForm}
-        onClose={() => setShowCreateForm(false)}
-        size="xl"
-      >
-        <CreateRaffleForm onClose={() => setShowCreateForm(false)} />
-      </Modal>
     </div>
   );
 };

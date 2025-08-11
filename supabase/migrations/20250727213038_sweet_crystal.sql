@@ -1,3 +1,17 @@
+-- ========================================
+-- Tabla para datos de cuenta bancaria (única, para configuración global)
+CREATE TABLE IF NOT EXISTS accounts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    cbu VARCHAR(30) NOT NULL,
+    alias VARCHAR(30) NOT NULL,
+    titular VARCHAR(100) NOT NULL,
+    banco VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    whatsapp VARCHAR(30) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Script de inicialización para PostgreSQL
 -- Este archivo se ejecuta automáticamente cuando se crea el contenedor
 
@@ -19,6 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+
 -- Crear tabla de rifas
 CREATE TABLE IF NOT EXISTS raffles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -27,6 +42,7 @@ CREATE TABLE IF NOT EXISTS raffles (
     draw_date TIMESTAMP WITH TIME ZONE NOT NULL,
     max_tickets INTEGER NOT NULL DEFAULT 10000,
     is_active BOOLEAN DEFAULT true,
+    account_id UUID NULL REFERENCES accounts(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

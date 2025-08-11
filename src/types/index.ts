@@ -1,3 +1,16 @@
+// Datos de cuenta bancaria para transferencias
+export interface Account {
+  id: string;
+  cbu: string;
+  alias: string;
+  titular: string;
+  banco: string;
+  email: string;
+  whatsapp: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Raffle {
   id: string;
   title: string;
@@ -7,7 +20,9 @@ export interface Raffle {
   prizes: Prize[];
   priceTiers: PriceTier[];
   tickets: Ticket[];
+  account?: Account;
   isActive: boolean;
+  accountId: string | null;
   totalTickets: number;
   maxTickets: number;
   soldTickets: number;
@@ -48,6 +63,7 @@ export interface Purchase {
   raffleId: string;
   priceTierId: string;
   priceTier?: PriceTier; // Opcional, para incluir detalles del tier de precio
+  paymentMethod?: 'bank_transfer' | 'mercadopago' | 'cash' | '';
 }
 
 export interface User {

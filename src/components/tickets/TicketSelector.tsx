@@ -49,17 +49,62 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
     let attempts = 0;
     let stopPolling = false;
 
+    // --- Validación MercadoPago ---
+    const validateMercadoPago = async (p: Purchase) => {
+      // 0. Verificar paymentInfo antes de consultar la compra
+      const paymentId = paymentInfo?.payment_id || p.paymentId;
+      if (paymentId) {
+        setValidationType('Validando pago recibido');
+        setValidationStep('Consultando el pago en MercadoPago');
+        const info = await mercadoPagoService.getPaymentInfo(paymentId);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (info.status === 'approved') {
+          setIsVerifying(false);
+          setPaymentError(null);
+          setShowSuccess(true);
+          stopPolling = true;
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // --- Validación Transferencia/Efectivo ---
+    const validateTransfer = (p: Purchase) => {
+      setValidationType('Validando pago por transferencia o contado');
+      console.log('Validando pago por transferencia o efectivo');
+      if (p.status === 'paid' && (p.paymentMethod === 'bank_transfer' || p.paymentMethod === 'cash')) {
+
+        console.log('Pago confirmado por transferencia o efectivo');
+        setValidationStep('Pago confirmado');
+        setPaymentError(null);
+        setIsVerifying(false);
+        setShowSuccess(true);
+        setFailedPaymentValidation(false);
+        stopPolling = true;
+        return true;
+      }
+      if (p.status !== 'paid' && (p.paymentMethod === 'bank_transfer' || p.paymentMethod === 'cash')) {
+        console.log('Pago aún no confirmado por transferencia o efectivo');
+        setValidationStep('El pago aun no fue confirmado');
+        setPaymentError('Pago aún no confirmado');
+        setFailedPaymentValidation(true);
+        setIsVerifying(false);
+        stopPolling = true;
+        return true;
+      }
+      return false;
+    };
+
     const fetchPurchaseAndPayment = async () => {
       setIsVerifying(true);
       setPaymentError(null);
       try {
-
-        // 0. Consultar purchase
         setValidationType('Consultando compra...');
         setValidationStep('Buscando la compra en la base de datos');
         console.log(`🔍 Consultando compra con ID: ${purchaseId}`);
         const p = await getPurchaseById(purchaseId);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 100));
         if (!p) {
           setPaymentError('No se encontró la compra solicitada');
           stopPolling = true;
@@ -67,17 +112,18 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           return;
         }
         setPurchase(p);
-        console.log('Compra encontrada:', p);
+        setValidationType('Compra encontrada');
+        setValidationStep('¡La compra fue encontrada correctamente!');
         if (p.priceTier && p.priceTier.ticketCount) {
           setMaxSelections(p.priceTier.ticketCount);
         }
-        
+        console.log('Detalles de la compra:', p);
         if (p.status === 'paid' && p.tickets && p.tickets.length === p.priceTier?.ticketCount) {
-        
           p.status = 'confirmed'; // Simular que ya está confirmada si tiene todos los tickets
           updatePurchaseStatus(p.id, 'confirmed');
         }
 
+        await new Promise(resolve => setTimeout(resolve, 100));
         // Si la compra ya está confirmada, mostrar mensaje y no permitir continuar
         if (p.status === 'confirmed') {
           setSelectedNumbers(p.tickets?.map(t => t.number) || []);
@@ -87,30 +133,11 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           stopPolling = true;
           return;
         }
-
-
-
-
-
-        setValidationType('Compra encontrada');
-        setValidationStep('¡La compra fue encontrada correctamente!');
-
-        // 0. Verificar paymentInfo antes de consultar la compra
-        const paymentId = paymentInfo?.payment_id || p.paymentId;
-        if (paymentId) {
-          setValidationType('Validando pago recibido');
-          setValidationStep('Consultando el pago en MercadoPago');
-          const info = await mercadoPagoService.getPaymentInfo(paymentId);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          if (info.status === 'approved') {
-            setIsVerifying(false);
-            setPaymentError(null);
-            setShowSuccess(true);
-            stopPolling = true;
-            return;
-          }
-        }
-
+        // Validación transferencia/efectivo
+        if (validateTransfer(p)) return;
+        // Validación MercadoPago
+        const mpValid = await validateMercadoPago(p);
+        if (mpValid) return;
         // Si no se encontró pago aprobado, incrementar intentos
         setValidationType('No se encontró pago aprobado, reintentando...');
         setValidationStep('Esperando confirmación de pago');
@@ -119,11 +146,8 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         setFailedAttempts(attempts);
         setPaymentError('Pago aún no confirmado, reintentando en 10s...');
         setCountdown(10);
-
         await new Promise(resolve => setTimeout(resolve, 1000));
-
         if (attempts >= 3) {
-
           setValidationType('Consultando preferencia de pago');
           setValidationStep('Buscando el link de pago en MercadoPago');
           // Consultar preference con external_reference
@@ -197,9 +221,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
 
   const handleConfirmSelection = async () => {
     if (selectedNumbers.length !== maxSelections || !raffle) return;
-
     setLoading(true);
-
     try {
       // Obtener los IDs de los tickets seleccionados
       const selectedTicketIds = raffle.tickets
@@ -207,12 +229,19 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         .map(t => t.id);
 
       // Guardar los IDs de los tickets seleccionados en la base de datos
-      await updateTickets(purchaseId, selectedTicketIds);
+      try {
+        await updateTickets(purchaseId, selectedTicketIds);
+      } catch (err) {
+        throw new Error('No se pudieron actualizar los tickets en la base de datos');
+      }
 
-      console.log('Tickets seleccionados guardados:', selectedTicketIds);
-      console.log('MaxSelections:', maxSelections);
       if (maxSelections === selectedTicketIds.length) {
-        await updatePurchaseStatus(purchaseId, 'confirmed');
+        try {
+          await updatePurchaseStatus(purchaseId, 'confirmed');
+        } catch (err) {
+          throw new Error('No se pudo actualizar el estado de la compra en la base de datos');
+        }
+
         const updatedPurchase = await getPurchaseById(purchaseId);
         setPurchase(updatedPurchase);
         // Enviar email de selección de números y premios
@@ -234,6 +263,9 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
       setLoading(false);
     } catch (error) {
       console.error('Error confirming selection:', error);
+      let msg = 'Error al confirmar la selección. Intenta nuevamente.';
+      if (error instanceof Error) msg = error.message;
+      setPaymentError(msg);
       setLoading(false);
     }
   };
@@ -354,7 +386,6 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
       </div>
     );
   }
-
 
   if (emailSent) {
     return (

@@ -1,3 +1,6 @@
+import { EditRaffleView } from './views/EditRaffleView';
+import { AdminRafflesView } from './views/AdminRafflesView';
+// import { EditRaffleForm } se creará luego
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -20,11 +23,14 @@ import { PaymentSuccessPage } from './views/PaymentSuccessPage';
 import RaffleDetailView from './views/RaffleDetailView';
 import AdminUserManagementView from './views/AdminUserManagementView';
 import { RequireAuth } from './components/auth/RequireAuth';
+import { CreateAccountForm } from './components/admin/CreateAccountForm';
+import { CreateRaffleForm } from './components/raffles/CreateRaffleForm';
 
 const AppContent: React.FC = () => {
   useAuth();
   const { raffles, purchases } = useRaffle();
   const [selectedRaffle, setSelectedRaffle] = useState<Raffle | null>(null);
+  const [selectedTier, setSelectedTier] = useState<any>(null);
   const [showPurchaseFlow, setShowPurchaseFlow] = useState(false);
   const [selectedPurchaseId, setSelectedPurchaseId] = useState<string | null>(null);
   const [showConfigSetup, setShowConfigSetup] = useState(false);
@@ -35,8 +41,9 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
-  const handleBuyTickets = (raffle: Raffle) => {
+  const handleBuyTickets = (raffle: Raffle, tier?: any) => {
     setSelectedRaffle(raffle);
+    setSelectedTier(tier || null);
     setShowPurchaseFlow(true);
   };
 
@@ -56,25 +63,40 @@ const AppContent: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Routes>
           <Route path="/" element={<RafflesView raffles={raffles} onBuyTickets={handleBuyTickets} />} />
-          
-          <Route path="/admin" element={<AdminDashboard />} />
-          
-          <Route path="/purchases" element={<PurchasesView purchases={purchases} raffles={raffles} />} />
-          
-          <Route path="/raffle/view/:raffleId" element={<RaffleDetailView onBuyTickets={handleBuyTickets} />} />
-          
+
+          {/* Rutas protegidas para admin */}
+          <Route path="/admin" element={
+            <RequireAuth>
+              <AdminDashboard />
+            </RequireAuth>
+          } />
+          <Route path="/admin/raffles" element={
+            <RequireAuth>
+              <AdminRafflesView />
+            </RequireAuth>
+          } />
+          <Route path="/admin/raffles/new" element={
+            <RequireAuth>
+              <CreateRaffleForm />
+            </RequireAuth>
+          } />
+          <Route path="/admin/raffles/edit/:id" element={
+            <RequireAuth>
+              <EditRaffleView />
+            </RequireAuth>
+          } />
           <Route path="/admin/users" element={
             <RequireAuth>
               <AdminUserManagementView />
             </RequireAuth>
           } />
 
+          {/* Rutas públicas */}
+          <Route path="/purchases" element={<PurchasesView />} />
+          <Route path="/raffle/view/:raffleId" element={<RaffleDetailView onBuyTickets={handleBuyTickets} />} />
           <Route path="/payment/:purchaseId?/success" element={<PaymentSuccessPage />} />
-          
           <Route path="/ticket-selector/:purchaseId" element={<TicketSelector purchaseId={selectedPurchaseId || ''} onClose={handleTicketSelectorClose} />} />
-          
           <Route path="/login" element={<LoginForm />} />
-          
           <Route path="*" element={
             <div className="text-center py-16">
               <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -92,10 +114,12 @@ const AppContent: React.FC = () => {
       {selectedRaffle && (
         <PurchaseFlow
           raffle={selectedRaffle}
+          initialTier={selectedTier}
           isOpen={showPurchaseFlow}
           onClose={() => {
             setShowPurchaseFlow(false);
             setSelectedRaffle(null);
+            setSelectedTier(null);
           }}
           onPurchaseComplete={handlePurchaseComplete}
         />

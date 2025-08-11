@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 
 interface RaffleCardProps {
   raffle: Raffle;
-  onBuyTickets: (raffle: Raffle) => void;
+  onBuyTickets: (raffle: Raffle, tier?: any) => void;
 }
 
 export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) => {
@@ -27,7 +27,9 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
     <Card className="hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
       <CardHeader>
         <div className="flex justify-between items-start">
-          <CardTitle className="text-2xl text-blue-900">{raffle.title}</CardTitle>
+          <Link to={`/raffle/view/${raffle.id}`} className="focus:outline-none">
+            <CardTitle className="text-2xl text-blue-900 hover:underline cursor-pointer">{raffle.title}</CardTitle>
+          </Link>
           <div className={`px-3 py-1 rounded-full text-xs font-medium ${
             raffle.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
           }`}>
@@ -111,11 +113,17 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
           </h4>
           <div className="flex flex-wrap gap-2">
             {raffle.priceTiers.map((tier) => (
-              <div key={tier.id} className="flex flex-col items-center justify-center p-3 border border-gray-200 rounded-lg bg-white min-w-[120px]">
+              <button
+                key={tier.id}
+                type="button"
+                className="flex flex-col items-center justify-center p-3 border border-gray-200 rounded-lg bg-white min-w-[120px] hover:bg-blue-50 hover:border-blue-400 focus:outline-none transition"
+                onClick={() => onBuyTickets(raffle, tier)}
+                disabled={!raffle.isActive}
+              >
                 <span className="font-medium text-gray-900">{tier.ticketCount} números</span>
                 <span className="font-bold text-green-600">${tier.amount}</span>
                 <span className="text-xs text-gray-500">${(tier.amount / tier.ticketCount).toFixed(2)} c/u</span>
-              </div>
+              </button>
             ))}
           </div>
         </div>

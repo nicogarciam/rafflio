@@ -5,7 +5,7 @@ import { Raffle } from '../types';
 
 interface Props {
   raffles: Raffle[];
-  onBuyTickets: (raffle: Raffle) => void;
+  onBuyTickets: (raffle: Raffle, tier?: any) => void;
 }
 
 export const RafflesView: React.FC<Props> = ({ raffles, onBuyTickets }) => (

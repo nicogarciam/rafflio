@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { TicketSelector } from '../components/tickets/TicketSelector';
 import { mercadoPagoService } from '../services/mercadopago';
 import { raffleService } from '../services/raffle.service';
+import { purchaseService } from '../services/purchase.service';
 import { useRaffle } from '../contexts/RaffleContext';
 
 interface PaymentParams {
@@ -47,14 +48,21 @@ export const PaymentSuccessPage: React.FC = () => {
           setLoading(false);
           return;
         } 
+        
+
+        if (p?.paymentMethod !== 'mercadopago') {
+          setLoading(false);
+          return;
+        }
+
         const paymentMP = await mercadoPagoService.getPaymentInfo(paymentParams.payment_id);
         
 
         if (paymentMP && paymentMP.status === 'approved') {
           // Actualizar el purchase en la base de datos
-          await raffleService.updatePurchaseStatusAndPayment(purchaseId, 'paid', paymentParams.payment_id);
+          await purchaseService.updatePurchaseStatusAndPayment(purchaseId, 'paid', paymentParams.payment_id);
           if (paymentParams.preference_id) {
-            await raffleService.updatePurchasePreferenceId(purchaseId, paymentParams.preference_id);
+            await purchaseService.updatePurchasePreferenceId(purchaseId, paymentParams.preference_id);
           }
         } else {
           setError('El pago no fue aprobado o no se pudo verificar.');

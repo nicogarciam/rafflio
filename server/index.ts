@@ -247,15 +247,57 @@ app.post('/api/send-purchase-link', async (req: any, res: any) => {
   }
   const url = `${baseUrl}/payment/${purchaseId}/success`;
 
+  console.log('Compra obtenida:', purchaseId);
   try {
+    // Obtener datos de la compra, rifa y premios desde Supabase
+    const { data: purchase, error: purchaseError } = await supabase
+      .from('purchases')
+      .select('*')
+      .eq('id', purchaseId)
+      .single();
+    if (purchaseError || !purchase) {
+      throw new Error('No se pudo obtener la compra');
+    }
+    console.log('Compra obtenida:', purchase);
+    // Determinar el campo correcto para la rifa
+    const raffleId = purchase.raffle_id || purchase.raffleId;
+    if (!raffleId) {
+      console.error('No se encontró raffle_id ni raffleId en la compra:', purchase);
+      throw new Error('No se pudo determinar la rifa asociada a la compra');
+    }
+    console.log('Buscando rifa con id:', raffleId);
+    const { data: raffle, error: raffleError } = await supabase
+      .from('raffles')
+      .select('*, prizes(*), price_tiers(*)')
+      .eq('id', raffleId)
+      .single();
+    if (raffleError || !raffle) {
+      console.error('Error al obtener la rifa:', raffleError, 'ID:', raffleId);
+      throw new Error('No se pudo obtener la rifa');
+    }
+
+    // Buscar el tier de precio seleccionado
+    const tier = Array.isArray(raffle.price_tiers)
+      ? raffle.price_tiers.find((t: any) => t.id === purchase.price_tier_id)
+      : null;
+
+    // Premios
+    const premiosHtml = Array.isArray(raffle.prizes)
+      ? raffle.prizes.map((p: any, i: number) => `<li><strong>${i + 1}°:</strong> ${p.name} - ${p.description}</li>`).join('')
+      : '';
+
     await transporter.sendMail({
       from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
       to,
-      subject: '¡Gracias por tu compra! Selecciona tus números',
+      subject: `¡Gracias por tu compra en la rifa "${raffle.title}"! Selecciona tus números`,
       html: `
-        <h2>¡Gracias por tu compra!</h2>
+        <h2>¡Gracias por tu compra en "${raffle.title}"!</h2>
+        <p><strong>Descripción:</strong> ${raffle.description}</p>
+        <p><strong>Premios:</strong></p>
+        <ul>${premiosHtml}</ul>
+        <p><strong>Cantidad de números a seleccionar:</strong> ${tier?.ticket_count || 'N/A'}</p>
         <p>Puedes seleccionar tus números de la rifa en el siguiente enlace:</p>
-        <a href="${url}">${url}</a>
+        <a href="${url}">Seleccionar Números</a>
         <p>¡Mucha suerte!</p>
       `,
     });
@@ -350,8 +392,6 @@ io.on('connection', (socket: Socket) => {
 });
 
 
-
-
 /* {
  "id": 12345,
  "live_mode": true,
@@ -405,10 +445,11 @@ app.post('/api/payment/webhook', async (req: Request, res: Response) => {
 
     const purchase = purchases[0];
 
+    const status = paymentStatus === 'approved' ? 'paid' : 'failed';
     // 3. Actualizar el estado de la compra en Supabase
     const { error: updateError } = await supabase
       .from('purchases')
-      .update({ status: paymentStatus, payment_id: paymentId })
+      .update({ status: status, payment_id: paymentId })
       .eq('id', purchase.id);
 
     if (updateError) {

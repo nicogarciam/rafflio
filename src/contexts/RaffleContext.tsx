@@ -1,13 +1,32 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Raffle, Purchase, Ticket } from '../types';
 import { raffleService } from '../services/raffle.service';
+import { purchaseService } from '../services/purchase.service';
 
 interface RaffleContextType {
   raffles: Raffle[];
   purchases: Purchase[];
+  totalPurchases: number;
+  page: number;
+  pageSize: number;
+  setPage: (page: number) => void;
+  setPageSize: (size: number) => void;
+  filters: {
+    search?: string;
+    status?: string;
+    raffleId?: string;
+    order?: 'asc' | 'desc';
+  };
+  setFilters: (filters: {
+    search?: string;
+    status?: string;
+    raffleId?: string;
+    order?: 'asc' | 'desc';
+  }) => void;
   isLoading: boolean;
   error: string | null;
   addRaffle: (raffle: Omit<Raffle, 'id' | 'createdAt' | 'tickets' | 'totalTickets' | 'soldTickets'>) => Promise<void>;
+  updateRaffle: (id: string, updates: Partial<Omit<Raffle, 'id' | 'createdAt' | 'tickets' | 'soldTickets' | 'totalTickets'>>) => Promise<void>;
   getRaffleById: (id: string) => Raffle | undefined;
   createPurchase: (purchase: Omit<Purchase, 'id' | 'createdAt' | 'paymentId'>) => Promise<Purchase>;
   updatePurchaseStatus: (purchaseId: string, status: Purchase['status']) => Promise<void>;
@@ -15,7 +34,7 @@ interface RaffleContextType {
   updateTickets: (purchaseId: string, ticketNumbers: string[]) => Promise<void>;
   getAvailableTickets: (raffleId: string) => Promise<Ticket[]>;
   refreshRaffles: () => Promise<void>;
-  refreshPurchases: () => Promise<void>;
+  refreshPurchases: (page?: number, pageSize?: number, filters?: any) => Promise<void>;
   getPurchaseById: (purchaseId: string) => Promise<Purchase | null>;
 }
 
@@ -32,6 +51,10 @@ export const useRaffle = () => {
 export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [raffles, setRaffles] = useState<Raffle[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [totalPurchases, setTotalPurchases] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(15);
+  const [filters, setFilters] = useState<{ search?: string; status?: string; raffleId?: string; order?: 'asc' | 'desc'; }>({ order: 'desc' });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,20 +72,43 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const loadPurchases = async () => {
+  const loadPurchases = async (pageArg = page, pageSizeArg = pageSize, filtersArg = filters) => {
     try {
-      const purchasesData = await raffleService.getPurchases();
+      setIsLoading(true);
+      setError(null);
+      const { purchases: purchasesData, total } = await purchaseService.getPurchases(pageArg, pageSizeArg, filtersArg);
       setPurchases(purchasesData);
+      setTotalPurchases(total);
     } catch (err) {
       console.error('Error loading purchases:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar las compras');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     loadRaffles();
-    loadPurchases();
+    loadPurchases(1, pageSize, filters); // Cargar la primera página al iniciar
   }, []);
+
+  useEffect(() => {
+    loadPurchases(page, pageSize, filters);
+  }, [page, pageSize, filters]);
+
+  const updateRaffle = async (id: string, updates: Partial<Omit<Raffle, 'id' | 'createdAt' | 'tickets' | 'soldTickets' | 'totalTickets'>>) => {
+    try {
+      setError(null);
+      const updated = await raffleService.updateRaffle(id, updates);
+      if (updated) {
+        setRaffles((prev: Raffle[]) => prev.map((r: Raffle) => r.id === id ? { ...r, ...updated } : r));
+      }
+    } catch (err) {
+      console.error('Error updating raffle:', err);
+      setError(err instanceof Error ? err.message : 'Error al actualizar la rifa');
+      throw err;
+    }
+  };
 
   const addRaffle = async (raffleData: Omit<Raffle, 'id' | 'createdAt' | 'tickets' | 'totalTickets' | 'soldTickets'>) => {
     try {
@@ -73,11 +119,13 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         drawDate: raffleData.drawDate,
         maxTickets: raffleData.maxTickets,
         prizes: raffleData.prizes,
-        priceTiers: raffleData.priceTiers
+        priceTiers: raffleData.priceTiers,
+        isActive: true,
+        accountId: raffleData.accountId || null
       });
 
       if (newRaffle) {
-        setRaffles(prev => [newRaffle, ...prev]);
+        setRaffles((prev: Raffle[]) => [newRaffle, ...prev]);
       }
     } catch (err) {
       console.error('Error adding raffle:', err);
@@ -93,7 +141,7 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const createPurchase = async (purchaseData: Omit<Purchase, 'id' | 'createdAt' | 'paymentId'>) => {
     try {
       setError(null);
-      const newPurchase = await raffleService.createPurchase({
+      const newPurchase = await purchaseService.createPurchase({
         fullName: purchaseData.fullName,
         email: purchaseData.email,
         phone: purchaseData.phone,
@@ -117,7 +165,7 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updatePurchaseStatus = async (purchaseId: string, status: Purchase['status']) => {
     try {
       setError(null);
-      await raffleService.updatePurchaseStatus(purchaseId, status);
+      await purchaseService.updatePurchaseStatus(purchaseId, status);
 
       setPurchases(prev =>
         prev.map(purchase =>
@@ -134,7 +182,7 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updatePurchasePreferenceId = async (purchaseId: string, preferenceId: string) => {
     try {
       setError(null);
-      await raffleService.updatePurchasePreferenceId(purchaseId, preferenceId);
+      await purchaseService.updatePurchasePreferenceId(purchaseId, preferenceId);
 
       setPurchases(prev =>
         prev.map(purchase =>
@@ -152,13 +200,13 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updateTickets = async (purchaseId: string, ticketIds: string[]) => {
     try {
       setError(null);
-      await raffleService.assignTicketsToPurchase(purchaseId, ticketIds);
+      await purchaseService.assignTicketsToPurchase(purchaseId, ticketIds);
 
       // Actualizar el estado local
       // await loadRaffles(); // Recargar rifas para actualizar tickets
 
       // Actualizar la compra con los tickets seleccionados
-      const updatedPurchase = await raffleService.getPurchaseById(purchaseId);
+      const updatedPurchase = await purchaseService.getPurchaseById(purchaseId);
       if (updatedPurchase) {
         setPurchases(prev =>
           prev.map(p => p.id === purchaseId ? updatedPurchase : p)
@@ -185,13 +233,13 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     await loadRaffles();
   };
 
-  const refreshPurchases = async () => {
-    await loadPurchases();
+  const refreshPurchases = async (pageArg = page, pageSizeArg = pageSize, filtersArg = filters) => {
+    await loadPurchases(pageArg, pageSizeArg, filtersArg);
   };
 
   const getPurchaseById = async (purchaseId: string) => {
     try {
-      const purchase = raffleService.getPurchaseById(purchaseId);
+      const purchase = purchaseService.getPurchaseById(purchaseId);
       if (purchase) {
         return purchase;
       }
@@ -207,9 +255,17 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     <RaffleContext.Provider value={{
       raffles,
       purchases,
+      totalPurchases,
+      page,
+      pageSize,
+      setPage,
+      setPageSize,
+      filters,
+      setFilters,
       isLoading,
       error,
       addRaffle,
+      updateRaffle,
       getRaffleById,
       createPurchase,
       updatePurchaseStatus,

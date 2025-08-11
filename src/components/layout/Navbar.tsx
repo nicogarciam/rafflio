@@ -35,6 +35,13 @@ export const Navbar: React.FC = () => {
                     Administración
                   </Link>
                   <Link
+                    to="/admin/raffles"
+                    className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-blue-600 hover:text-blue-900"
+                  >
+                    <Ticket className="w-4 h-4 inline mr-1" />
+                    Rifas
+                  </Link>
+                  <Link
                     to="/admin/users"
                     className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900"
                   >
