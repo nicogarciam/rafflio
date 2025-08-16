@@ -17,9 +17,18 @@ interface RaffleFormProps {
 }
 
 export const RaffleForm: React.FC<RaffleFormProps> = ({ initialRaffle, isEdit, onSubmit, onCancel, loading }) => {
+    // Normaliza la fecha a formato yyyy-MM-ddTHH:mm para input datetime-local
+    function normalizeDate(dateStr?: string) {
+        if (!dateStr) return '';
+        if (dateStr.length === 16 && dateStr.includes('T')) return dateStr;
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
     const [title, setTitle] = useState(initialRaffle?.title || '');
     const [description, setDescription] = useState(initialRaffle?.description || '');
-    const [drawDate, setDrawDate] = useState(initialRaffle?.drawDate || '');
+    const [drawDate, setDrawDate] = useState(normalizeDate(initialRaffle?.drawDate));
     const [maxTickets, setMaxTickets] = useState(initialRaffle?.maxTickets || 300);
     const [prizes, setPrizes] = useState<Omit<Prize, 'id' | 'raffleId'>[]>(initialRaffle?.prizes?.map(p => ({ name: p.name, description: p.description })) || [{ name: '', description: '' }]);
     const [priceTiers, setPriceTiers] = useState<Omit<PriceTier, 'id' | 'raffleId'>[]>(initialRaffle?.priceTiers?.map(t => ({ amount: t.amount, ticketCount: t.ticketCount })) || [{ amount: 0, ticketCount: 0 }]);
@@ -101,16 +110,20 @@ export const RaffleForm: React.FC<RaffleFormProps> = ({ initialRaffle, isEdit, o
                     <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                     <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="w-full border rounded px-3 py-2" required />
                 </div>
-                <Input label="Fecha de sorteo" type="datetime-local" value={drawDate} onChange={e => setDrawDate(e.target.value)} required />
-                <Input label="Cantidad máxima de tickets" type="number" value={maxTickets} onChange={e => setMaxTickets(Number(e.target.value))} required min={1} />
+                <div className="flex gap-2 items-end">
+                    <Input label="Fecha de sorteo" type="datetime-local" value={drawDate} onChange={e => setDrawDate(e.target.value)} required />
+                    <Input label="Cantidad máxima de tickets" type="number" value={maxTickets} onChange={e => setMaxTickets(Number(e.target.value))} required min={1} />
+                </div>
+
             </div>
 
             <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Premios</h3>
                 {prizes.map((prize, index) => (
                     <div key={index} className="flex gap-2 items-end">
-                        <Input label="Nombre" value={prize.name} onChange={e => updatePrize(index, 'name', e.target.value)} required />
-                        <Input label="Descripción" value={prize.description} onChange={e => updatePrize(index, 'description', e.target.value)} required />
+                        <Input label="Nombre" value={prize.name} onChange={e => updatePrize(index, 'name', e.target.value)} required className="py-3" style={{ width: '300px' }} />
+                        <Input label="Descripción" value={prize.description} onChange={e => updatePrize(index, 'description', e.target.value)} required className="py-3" style={{ width: '400px' }} />
+                        
                         <Button type="button" variant="danger" size="sm" onClick={() => removePrize(index)} disabled={prizes.length === 1}><Trash2 /></Button>
                     </div>
                 ))}
@@ -121,8 +134,8 @@ export const RaffleForm: React.FC<RaffleFormProps> = ({ initialRaffle, isEdit, o
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Niveles de precio</h3>
                 {priceTiers.map((tier, index) => (
                     <div key={index} className="flex gap-2 items-end">
-                        <Input label="Monto" type="number" value={tier.amount} onChange={e => updatePriceTier(index, 'amount', parseFloat(e.target.value) || 0)} required min={1} />
-                        <Input label="Cantidad de tickets" type="number" value={tier.ticketCount} onChange={e => updatePriceTier(index, 'ticketCount', parseInt(e.target.value) || 0)} required min={1} />
+                        <Input label="Monto" type="number" value={tier.amount} onChange={e => updatePriceTier(index, 'amount', parseFloat(e.target.value) || 0)} required min={1} className="text-lg py-3" />
+                        <Input label="Cantidad de tickets" type="number" value={tier.ticketCount} onChange={e => updatePriceTier(index, 'ticketCount', parseInt(e.target.value) || 0)} required min={1} className="text-lg py-3" />
                         <Button type="button" variant="danger" size="sm" onClick={() => removePriceTier(index)} disabled={priceTiers.length === 1}><Trash2 /></Button>
                     </div>
                 ))}

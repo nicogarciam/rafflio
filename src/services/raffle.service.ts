@@ -1,3 +1,4 @@
+// Genera un mensaje de WhatsApp para compartir una rifa
 import { supabase } from '../lib/supabase';
 import { Raffle, Purchase, Ticket, Prize, PriceTier } from '../types';
 
@@ -11,6 +12,7 @@ export interface CreatePurchaseData {
 }
 
 class RaffleService {
+
   async getRaffles(): Promise<Raffle[]> {
     if (!supabase) {
       return this.mockRaffles;
@@ -280,6 +282,7 @@ class RaffleService {
       purchaseId: ticket.purchase_id,
     }));
   }
+
 }
 
 export const raffleService = new RaffleService();

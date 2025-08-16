@@ -1,9 +1,10 @@
 import React from 'react';
-import { Calendar, Gift, Users, DollarSign, Ticket } from 'lucide-react';
+import { Calendar, Gift, Users, DollarSign, Ticket, Share2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Raffle } from '../../types';
 import { Link } from 'react-router-dom';
+import { getWhatsappShareMessageSafe } from '../../services/share.service';
 
 interface RaffleCardProps {
   raffle: Raffle;
@@ -23,6 +24,26 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
 
   const soldPercentage = (raffle.soldTickets / raffle.totalTickets) * 100;
 
+  const handleShare = () => {
+    const message = getWhatsappShareMessageSafe(raffle);
+    // Abrir WhatsApp en el navegador
+    // Detectar si es mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    
+    if (isMobile) {
+        // En mobile, abrir directamente
+        window.location.href = url;
+    } else {
+        // En desktop, intentar abrir WhatsApp Web
+       window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+        // O alternativamente, copiar al clipboard
+        // navigator.clipboard.writeText(decodeURIComponent(url.split('text=')[1]));
+    }
+
+    
+  };
+
   return (
     <Card className="hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
       <CardHeader>
@@ -30,10 +51,18 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
           <Link to={`/raffle/view/${raffle.id}`} className="focus:outline-none">
             <CardTitle className="text-2xl text-blue-900 hover:underline cursor-pointer">{raffle.title}</CardTitle>
           </Link>
-          <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-            raffle.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-          }`}>
-            {raffle.isActive ? 'Activa' : 'Inactiva'}
+          <div className="flex items-center gap-2">
+            <button
+              title="Compartir por WhatsApp"
+              className="p-2 rounded-full hover:bg-green-100 transition"
+              onClick={handleShare}
+            >
+              <Share2 className="w-5 h-5 text-green-600" />
+            </button>
+            <div className={`px-3 py-1 rounded-full text-xs font-medium ${raffle.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+              }`}>
+              {raffle.isActive ? 'Activa' : 'Inactiva'}
+            </div>
           </div>
         </div>
         <p className="text-gray-600 mt-2">{raffle.description}</p>
@@ -74,7 +103,7 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
             <span className="text-sm font-medium text-gray-900">{soldPercentage.toFixed(1)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500"
               style={{ width: `${soldPercentage}%` }}
             />
