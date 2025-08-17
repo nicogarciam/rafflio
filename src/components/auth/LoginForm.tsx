@@ -11,7 +11,7 @@ export const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, error: authError } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,9 +72,9 @@ export const LoginForm: React.FC = () => {
                 />
               </div>
 
-              {error && (
+              {(error || authError) && (
                 <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                  <p className="text-sm text-red-600">{error}</p>
+                  <p className="text-sm text-red-600">{error || authError}</p>
                 </div>
               )}
 

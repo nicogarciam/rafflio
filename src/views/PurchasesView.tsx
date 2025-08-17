@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { purchaseService } from '../services/purchase.service';
 import { ShoppingCart } from 'lucide-react';
 import { config } from '../lib/config';
-import { Info, Edit2, Mail, Link as LinkIcon } from 'lucide-react';
+import { Info, Edit2, Mail, Link as LinkIcon, SortDesc, SortAsc } from 'lucide-react';
 import { sendPurchaseLinkEmail } from '../services/email.service';
 
 
@@ -253,24 +253,32 @@ export const PurchasesView: React.FC = () => {
             <option key={r.id} value={r.id}>{r.title}</option>
           ))}
         </select>
-        <select
-          className="w-[200px] px-3 py-2 border rounded focus:outline-none focus:ring"
-          value={filters.order || 'desc'}
-          onChange={e => {
-            setFilters({ ...filters, order: e.target.value as 'asc' | 'desc' });
-            setPage(1);
-          }}
-        >
-          <option value="desc">Más recientes primero</option>
-          <option value="asc">Más antiguas primero</option>
-        </select>
+        <div className="flex items-center gap-1">
+          <select
+            className="w-[44px] h-10 px-2 py-1 border rounded focus:outline-none focus:ring text-xs"
+            value={filters.order || 'desc'}
+            onChange={e => {
+              setFilters({ ...filters, order: e.target.value as 'asc' | 'desc' });
+              setPage(1);
+            }}
+            aria-label="Ordenar"
+          >
+            <option value="desc">↓</option>
+            <option value="asc">↑</option>
+          </select>
+          {filters.order === 'asc' ? (
+            <SortAsc className="w-4 h-4 text-gray-500" />
+          ) : (
+            <SortDesc className="w-4 h-4 text-gray-500" />
+          )}
+        </div>
         {/* Botón de refrescar */}
         <Button
-          className="md:col-span-1 w-full"
+          className="md:col-span-1 w-auto min-w-[90px] px-3"
           variant="outline"
           onClick={() => refreshPurchases()}
         >
-          Refrescar
+          Buscar
         </Button>
       </div>
       <div className="overflow-x-auto">
