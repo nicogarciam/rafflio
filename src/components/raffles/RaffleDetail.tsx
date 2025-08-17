@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Calendar, Gift, Users, DollarSign, Ticket } from 'lucide-react';
+import { Calendar, Gift, Users, DollarSign, Ticket, Share2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Raffle } from '../../types';
 import { raffleService } from '../../services/raffle.service';
+import { getWhatsappShareMessageSafe } from '../../services/share.service';
 
 interface RaffleDetailProps {
   onBuyTickets?: (raffle: Raffle) => void;
@@ -29,6 +30,17 @@ export const RaffleDetail: React.FC<RaffleDetailProps> = ({ onBuyTickets }) => {
       onBuyTickets(raffle);
     }
   };
+  const handleShare = () => {
+    if (!raffle) return;
+    const message = getWhatsappShareMessageSafe(raffle);
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    if (isMobile) {
+      window.location.href = url;
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
@@ -50,10 +62,18 @@ export const RaffleDetail: React.FC<RaffleDetailProps> = ({ onBuyTickets }) => {
       <CardHeader>
         <div className="flex justify-between items-start">
           <CardTitle className="text-3xl text-blue-900">{raffle.title}</CardTitle>
-          <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-            raffle.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-          }`}>
-            {raffle.isActive ? 'Activa' : 'Inactiva'}
+          <div className="flex items-center gap-2">
+            <button
+              title="Compartir por WhatsApp"
+              className="p-2 rounded-full hover:bg-green-100 transition"
+              onClick={handleShare}
+            >
+              <Share2 className="w-5 h-5 text-green-600" />
+            </button>
+            <div className={`px-3 py-1 rounded-full text-xs font-medium ${raffle.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+              }`}>
+              {raffle.isActive ? 'Activa' : 'Inactiva'}
+            </div>
           </div>
         </div>
         <p className="text-gray-600 mt-2">{raffle.description}</p>
@@ -94,7 +114,7 @@ export const RaffleDetail: React.FC<RaffleDetailProps> = ({ onBuyTickets }) => {
             <span className="text-sm font-medium text-gray-900">{soldPercentage.toFixed(1)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500"
               style={{ width: `${soldPercentage}%` }}
             />
@@ -116,7 +136,7 @@ export const RaffleDetail: React.FC<RaffleDetailProps> = ({ onBuyTickets }) => {
                   <p className="font-medium text-gray-900">{prize.name}</p>
                   <p className="text-sm text-gray-600">{prize.description}</p>
                 </div>
-                
+
               </div>
             ))}
           </div>
