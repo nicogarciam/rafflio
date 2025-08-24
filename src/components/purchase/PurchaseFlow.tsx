@@ -96,33 +96,14 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
     setStep(1);
   };
 
-  // Paso 3: Selección método de pago
-  const handlePaymentMethodNext = () => {
-    setStep(4);
-  };
   const handlePaymentMethodBack = () => {
     setStep(2);
   };
 
-  // Paso 4: Confirmación y pago/instrucciones
   const handlePaymentStepBack = () => {
     setStep(3);
   };
-  const handlePaymentStepComplete = () => {
-    setStep(1);
-    setSelectedTier(null);
-    setUserData({ fullName: '', email: '', phone: '' });
-    setPaymentMethod(null);
-    setPurchaseId('');
-    setPreferenceId('');
-    setError(null);
-    setLoading(false);
-    onClose();
-  };
-
   // Crear compra y manejar pago
-  
-
   const handleCreatePurchase = async () => {
     if (!selectedTier || !paymentMethod) return;
     setLoading(true);
@@ -161,7 +142,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
         await updatePurchasePreferenceId(purchase.id, preference.id);
         await sendPurchaseLinkEmail(purchase.email, purchase.id);
         window.open(preference.init_point, '_blank', 'noopener,noreferrer');
-      } else if (paymentMethod === 'bank_transfer') {
+      } else {
         // Asignar tickets como vendidos y dejar compra pendiente
         if (selectedNumbers && selectedNumbers.length > 0) {
           await updateTickets(purchase.id, selectedNumbers.map(t => t.id));
@@ -169,10 +150,23 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
         }
       }
       setLoading(false);
+      setStep(4);
     } catch (err: any) {
       setError('Error al procesar la compra. Intenta nuevamente.');
       setLoading(false);
     }
+  };
+
+  const handlePaymentStepComplete = () => {
+    setStep(1);
+    setSelectedTier(null);
+    setUserData({ fullName: '', email: '', phone: '' });
+    setPaymentMethod(null);
+    setPurchaseId('');
+    setPreferenceId('');
+    setError(null);
+    setLoading(false);
+    onClose();
   };
 
   // Suscribirse a actualizaciones de estado de pago
@@ -215,11 +209,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
         <PurchasePaymentMethodSelector
           paymentMethod={paymentMethod}
           onSelect={setPaymentMethod}
-          onNext={() => {
-            if (paymentMethod) {
-              setStep(4);
-            }
-          }}
+          onNext={handleCreatePurchase}
           onBack={handlePaymentMethodBack}
           selectedTier={selectedTier}
         />
@@ -230,10 +220,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
           selectedTier={selectedTier}
           userData={userData}
           onBack={handlePaymentStepBack}
-          onComplete={async () => {
-            await handleCreatePurchase();
-            handlePaymentStepComplete();
-          }}
+          onComplete={handlePaymentStepComplete}
           account={raffle.account}
           paymentStatus={paymentStatus}
           error={error}
