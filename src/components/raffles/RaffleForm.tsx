@@ -17,15 +17,6 @@ interface RaffleFormProps {
 }
 
 export const RaffleForm: React.FC<RaffleFormProps> = ({ initialRaffle, isEdit, onSubmit, onCancel, loading }) => {
-    // Normaliza la fecha a formato yyyy-MM-ddTHH:mm para input datetime-local
-    function normalizeDate(dateStr?: string) {
-        if (!dateStr) return '';
-        if (dateStr.length === 16 && dateStr.includes('T')) return dateStr;
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return '';
-        const pad = (n: number) => n.toString().padStart(2, '0');
-        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    }
     const [title, setTitle] = useState(initialRaffle?.title || '');
     const [description, setDescription] = useState(initialRaffle?.description || '');
     const [drawDate, setDrawDate] = useState(normalizeDate(initialRaffle?.drawDate));
@@ -36,6 +27,16 @@ export const RaffleForm: React.FC<RaffleFormProps> = ({ initialRaffle, isEdit, o
     const [selectedAccountId, setSelectedAccountId] = useState<string | null>(initialRaffle?.accountId || null);
     const [showNewAccount, setShowNewAccount] = useState(false);
     const [formLoading, setFormLoading] = useState(false);
+
+     // Normaliza la fecha a formato yyyy-MM-ddTHH:mm para input datetime-local
+    function normalizeDate(dateStr?: string) {
+        if (!dateStr) return '';
+        if (dateStr.length === 16 && dateStr.includes('T')) return dateStr;
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
 
     useEffect(() => {
         accountService.getAccounts().then(setAccounts);
@@ -75,11 +76,11 @@ export const RaffleForm: React.FC<RaffleFormProps> = ({ initialRaffle, isEdit, o
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 bg-white p-8 rounded shadow">
+        <form onSubmit={handleSubmit} className="space-y-8 bg-white p-4 sm:p-6 md:p-8 rounded shadow">
             <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Cuenta asociada</h3>
                 {!showNewAccount && (
-                    <div className="flex gap-2 items-center">
+                    <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                         <select
                             className="flex-1 border rounded px-3 py-2"
                             value={selectedAccountId || ''}
@@ -110,41 +111,59 @@ export const RaffleForm: React.FC<RaffleFormProps> = ({ initialRaffle, isEdit, o
                     <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                     <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="w-full border rounded px-3 py-2" required />
                 </div>
-                <div className="flex gap-2 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-end">
                     <Input label="Fecha de sorteo" type="datetime-local" value={drawDate} onChange={e => setDrawDate(e.target.value)} required />
                     <Input label="Cantidad máxima de tickets" type="number" value={maxTickets} onChange={e => setMaxTickets(Number(e.target.value))} required min={1} />
                 </div>
-
             </div>
 
             <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Premios</h3>
+                <div className="space-y-2">
                 {prizes.map((prize, index) => (
-                    <div key={index} className="flex gap-2 items-end">
-                        <Input label="Nombre" value={prize.name} onChange={e => updatePrize(index, 'name', e.target.value)} required className="py-3" style={{ width: '300px' }} />
-                        <Input label="Descripción" value={prize.description} onChange={e => updatePrize(index, 'description', e.target.value)} required className="py-3" style={{ width: '400px' }} />
-                        
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-[300px_1fr_auto] gap-2 items-end">
+                        <Input label="Nombre" value={prize.name} onChange={e => updatePrize(index, 'name', e.target.value)} required className="py-3" />
+                        <Input label="Descripción" value={prize.description} onChange={e => updatePrize(index, 'description', e.target.value)} required className="py-3" />
                         <Button type="button" variant="danger" size="sm" onClick={() => removePrize(index)} disabled={prizes.length === 1}><Trash2 /></Button>
                     </div>
                 ))}
+                </div>
                 <Button type="button" variant="outline" size="sm" onClick={addPrize}><Plus className="w-4 h-4" /> Agregar premio</Button>
             </div>
 
             <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Niveles de precio</h3>
+                <div className="space-y-2">
                 {priceTiers.map((tier, index) => (
-                    <div key={index} className="flex gap-2 items-end">
-                        <Input label="Monto" type="number" value={tier.amount} onChange={e => updatePriceTier(index, 'amount', parseFloat(e.target.value) || 0)} required min={1} className="text-lg py-3" />
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-end">
                         <Input label="Cantidad de tickets" type="number" value={tier.ticketCount} onChange={e => updatePriceTier(index, 'ticketCount', parseInt(e.target.value) || 0)} required min={1} className="text-lg py-3" />
+                                                <Input 
+                                                    label="Monto" 
+                                                    type="text"
+                                                    value={
+                                                        tier.amount === 0 ? '' : tier.amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                                    }
+                                                    onChange={e => {
+                                                        // Permitir solo números, puntos y comas
+                                                        let val = e.target.value.replace(/[^\d.,]/g, '');
+                                                        // Reemplazar punto por nada (miles) y coma por punto (decimales)
+                                                        val = val.replace(/\./g, '').replace(/,/g, '.');
+                                                        updatePriceTier(index, 'amount', parseFloat(val) || 0);
+                                                    }}
+                                                    required 
+                                                    min={1} 
+                                                    className="text-lg py-3" 
+                                                />
                         <Button type="button" variant="danger" size="sm" onClick={() => removePriceTier(index)} disabled={priceTiers.length === 1}><Trash2 /></Button>
                     </div>
                 ))}
+                </div>
                 <Button type="button" variant="outline" size="sm" onClick={addPriceTier}><Plus className="w-4 h-4" /> Agregar nivel</Button>
             </div>
 
-            <div className="flex gap-2 pt-4">
-                <Button type="submit" disabled={formLoading || loading}>{isEdit ? 'Actualizar rifa' : 'Crear rifa'}</Button>
-                {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>}
+            <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                <Button type="submit" disabled={formLoading || loading} className="w-full sm:w-auto">{isEdit ? 'Actualizar rifa' : 'Crear rifa'}</Button>
+                {onCancel && <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">Cancelar</Button>}
             </div>
         </form>
     );

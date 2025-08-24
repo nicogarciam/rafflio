@@ -15,6 +15,7 @@ export const CreateAccountForm: React.FC<{ onCreate: (account: Account | null) =
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<boolean>(false);
 
     const handleChange = (field: keyof typeof account, value: string) => {
         setAccount(a => ({ ...a, [field]: value }));
@@ -23,14 +24,19 @@ export const CreateAccountForm: React.FC<{ onCreate: (account: Account | null) =
     const handleSubmit = async () => {
         setLoading(true);
         setError(null);
+        setSuccess(false);
         try {
             const created = await accountService.createAccount(account);
             if (!created) {
                 setError('No se pudo crear la cuenta');
+                setSuccess(false);
+            } else {
+                setSuccess(true);
             }
             onCreate(created);
         } catch (e) {
             setError('Error al crear la cuenta');
+            setSuccess(false);
             onCreate(null);
         } finally {
             setLoading(false);
@@ -62,6 +68,7 @@ export const CreateAccountForm: React.FC<{ onCreate: (account: Account | null) =
                 </div>
             ))}
             {error && <div className="text-red-500 text-sm">{error}</div>}
+            {success && <div className="text-green-600 text-sm">¡Cuenta creada exitosamente!</div>}
             <div className="flex gap-2 pt-2">
                 <Button type="button" onClick={handleSubmit} disabled={loading}>
                     {loading ? 'Creando...' : 'Crear cuenta'}

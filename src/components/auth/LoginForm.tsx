@@ -35,7 +35,7 @@ export const LoginForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-2 py-6 sm:px-4 sm:py-8 md:py-12 lg:px-8 flex md:items-center md:justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 px-2 py-2 sm:px-2 sm:py-2 md:py-2 lg:px-2 flex md:items-center md:justify-center">
       <div className="max-w-md w-full">
         <Card>
           <CardHeader className="text-center">

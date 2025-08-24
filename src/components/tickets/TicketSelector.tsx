@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { useRaffle } from '../../contexts/RaffleContext';
@@ -9,7 +10,7 @@ import { Purchase, Ticket } from '../../types';
 import { JSX } from 'react/jsx-runtime';
 
 interface TicketSelectorProps {
-  purchaseId: string;
+  purchaseId?: string;
   paymentInfo?: {
     payment_id?: string;
     status?: string;
@@ -21,7 +22,9 @@ interface TicketSelectorProps {
 }
 
 export const TicketSelector: React.FC<TicketSelectorProps> = ({
-  purchaseId, paymentInfo, onClose }) => {
+  purchaseId: propPurchaseId, paymentInfo, onClose }) => {
+  const params = useParams<{ purchaseId?: string }>();
+  const purchaseId = propPurchaseId || params.purchaseId || '';
   const { getPurchaseById, getRaffleById, updateTickets, updatePurchaseStatus } = useRaffle();
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
@@ -281,10 +284,10 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
 
     const tickets: JSX.Element[] = [];
 
-    raffle.tickets.forEach(ticket => {
+    // Ordenar los tickets por número antes de renderizar
+    const sortedTickets = [...raffle.tickets].sort((a, b) => a.number - b.number);
+    sortedTickets.forEach(ticket => {
       const status = getTicketStatus(ticket.number);
-      // Render each ticket button
-
       tickets.push(
         <button
           key={ticket.id}

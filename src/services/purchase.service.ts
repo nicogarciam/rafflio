@@ -4,9 +4,10 @@ import { Purchase, Ticket, PriceTier } from '../types';
 // CreatePurchaseData es igual a Purchase pero omite los campos generados automáticamente o no requeridos al crear
 export type CreatePurchaseData = Omit<
     Purchase,
-    'id' | 'paymentId' | 'status' | 'tickets' | 'createdAt' | 'priceTier' | 'paymentMethod'
+    'id' | 'paymentId' | 'status' | 'tickets' | 'createdAt' | 'priceTier'
 > & {
     preferenceId?: string;
+    paymentMethod?: Purchase['paymentMethod'];
 };
 
 class PurchaseService {
@@ -52,8 +53,11 @@ class PurchaseService {
                 preferenceId: '',
                 raffleId: purchaseData.raffleId,
                 priceTierId: purchaseData.priceTierId,
+                amount: purchaseData.amount ?? 0,
+                ticketCount: purchaseData.ticketCount ?? 0,
                 tickets: [],
                 createdAt: new Date().toISOString(),
+                paymentMethod: purchaseData.paymentMethod || '',
             };
             this.mockPurchases.unshift(newPurchase);
             return newPurchase;
@@ -70,6 +74,9 @@ class PurchaseService {
                     raffle_id: purchaseData.raffleId,
                     preference_id: purchaseData.preferenceId,
                     price_tier_id: purchaseData.priceTierId,
+                    amount: purchaseData.amount ?? 0,
+                    ticket_count: purchaseData.ticketCount ?? 0,
+                    payment_method: purchaseData.paymentMethod || '',
                 })
                 .select()
                 .single();
@@ -341,19 +348,32 @@ class PurchaseService {
         }
 
         try {
+            // Primero obtener la compra sin expandir price_tiers
             const { data: purchase, error } = await supabase
                 .from('purchases')
-                .select(`
-          *,
-          tickets (*),
-          price_tiers:price_tier_id (*)
-        `)
+                .select(`*, tickets (*)`)
                 .eq('id', purchaseId)
                 .single();
 
             if (error) throw error;
-            let priceTierRaw = Array.isArray(purchase.price_tiers) ? purchase.price_tiers[0] : purchase.price_tiers;
-            let priceTier = priceTierRaw ? this.transformPriceTiersData([priceTierRaw])[0] : undefined;
+
+            // Si priceTierId es 'custom', no expandir price_tiers
+            if (purchase.price_tier_id === 'custom') {
+                return this.transformPurchaseData(purchase);
+            }
+
+            // Si no es custom, expandir price_tiers manualmente
+            let priceTier = undefined;
+            if (purchase.price_tier_id) {
+                const { data: tier, error: tierError } = await supabase
+                    .from('price_tiers')
+                    .select('*')
+                    .eq('id', purchase.price_tier_id)
+                    .single();
+                if (!tierError && tier) {
+                    priceTier = this.transformPriceTiersData([tier])[0];
+                }
+            }
             const purchaseWithPriceTier = {
                 ...purchase,
                 price_tier: priceTier
@@ -382,6 +402,8 @@ class PurchaseService {
             preferenceId: data.preference_id || '',
             raffleId: data.raffle_id,
             priceTierId: data.price_tier_id,
+            amount: Number(data.amount ?? 0),
+            ticketCount: Number(data.ticket_count ?? 0),
             priceTier: data.price_tier || undefined,
             tickets: this.transformTicketsData(data.tickets || []),
             createdAt: data.created_at,

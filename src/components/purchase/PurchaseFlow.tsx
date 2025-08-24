@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { useRaffle } from '../../contexts/RaffleContext';
-import { Raffle, PriceTier, Account } from '../../types';
+import { Raffle, PriceTier, Account, Ticket } from '../../types';
 import { usePaymentStatus } from '../../hooks/usePaymentStatus';
 import { mercadoPagoService } from '../../services/mercadopago';
 import { config } from '../../lib/config';
@@ -9,6 +9,7 @@ import { PurchaseTierSelector } from './PurchaseFlow/PurchaseTierSelector';
 import { PurchaseUserForm } from './PurchaseFlow/PurchaseUserForm';
 import { PurchasePaymentMethodSelector, PaymentMethod } from './PurchaseFlow/PurchasePaymentMethodSelector';
 import { PurchasePaymentStep } from './PurchaseFlow/PurchasePaymentStep';
+import { useCart } from '../../contexts/CartContext';
 
 
 
@@ -30,8 +31,23 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
 }) => {
   const [step, setStep] = useState(1);
   const [selectedTier, setSelectedTier] = useState<PriceTier | null>(initialTier);
+  const [userData, setUserData] = useState({ fullName: '', email: '', phone: '' });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [purchaseId, setPurchaseId] = useState('');
+  const [preferenceId, setPreferenceId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'failed' | 'rejected' | 'cancelled' | null>(null);
+
+  const { updateTickets } = useRaffle();
+  const { selectedNumbers, clearCart } = useCart();
+
+  const { createPurchase, updatePurchaseStatus, updatePurchasePreferenceId } = useRaffle();
+
   // Si initialTier cambia (por ejemplo, al abrir el modal con otro tier), actualizar el estado
   useEffect(() => {
+    console.log('Initial tier changed:', initialTier);
+
     if (initialTier) {
       setSelectedTier(initialTier);
       setStep(2); // Ir directo al paso de datos del usuario si hay tier preseleccionado
@@ -41,15 +57,6 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTier, isOpen]);
-  const [userData, setUserData] = useState({ fullName: '', email: '', phone: '' });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
-  const [purchaseId, setPurchaseId] = useState('');
-  const [preferenceId, setPreferenceId] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'failed' | 'rejected' | 'cancelled' | null>(null);
-
-  const { createPurchase, updatePurchaseStatus, updatePurchasePreferenceId } = useRaffle();
 
   useEffect(() => {
     const mpPublicKey = config.mercadopago.publicKey;
@@ -114,22 +121,28 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
   };
 
   // Crear compra y manejar pago
+  
+
   const handleCreatePurchase = async () => {
     if (!selectedTier || !paymentMethod) return;
     setLoading(true);
     setError(null);
+    console.log('selected Tier:', selectedTier);
     try {
       const purchaseData: Omit<import('../../types').Purchase, "id" | "paymentId" | "createdAt"> = {
         fullName: userData.fullName,
         email: userData.email,
         phone: userData.phone,
         raffleId: raffle.id,
-        priceTierId: selectedTier.id,
+        priceTierId: selectedTier.id === 'custom' ? 'custom' : selectedTier.id,
+        amount: selectedTier.amount,
+        ticketCount: selectedTier.ticketCount,
         preferenceId: '',
         status: 'pending',
         tickets: [],
         paymentMethod: paymentMethod
       };
+      console.log('Creating purchase with data:', purchaseData);
       const purchase = await createPurchase(purchaseData);
       setPurchaseId(purchase.id);
 
@@ -137,7 +150,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
         // Crear preferencia de MercadoPago
         const paymentData = {
           raffleId: raffle.id,
-          priceTierId: selectedTier.id,
+          priceTierId: selectedTier?.id ?? null,
           userData: userData,
           amount: selectedTier.amount,
           ticketCount: selectedTier.ticketCount,
@@ -148,6 +161,12 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
         await updatePurchasePreferenceId(purchase.id, preference.id);
         await sendPurchaseLinkEmail(purchase.email, purchase.id);
         window.open(preference.init_point, '_blank', 'noopener,noreferrer');
+      } else if (paymentMethod === 'bank_transfer') {
+        // Asignar tickets como vendidos y dejar compra pendiente
+        if (selectedNumbers && selectedNumbers.length > 0) {
+          await updateTickets(purchase.id, selectedNumbers.map(t => t.id));
+          clearCart();
+        }
       }
       setLoading(false);
     } catch (err: any) {
@@ -198,7 +217,6 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
           onSelect={setPaymentMethod}
           onNext={() => {
             if (paymentMethod) {
-              handleCreatePurchase();
               setStep(4);
             }
           }}
@@ -212,12 +230,16 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
           selectedTier={selectedTier}
           userData={userData}
           onBack={handlePaymentStepBack}
-          onComplete={handlePaymentStepComplete}
+          onComplete={async () => {
+            await handleCreatePurchase();
+            handlePaymentStepComplete();
+          }}
           account={raffle.account}
           paymentStatus={paymentStatus}
           error={error}
           purchaseId={purchaseId}
           loading={loading}
+          raffleTitle={raffle.title}
         />
       )}
     </Modal>

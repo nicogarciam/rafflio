@@ -87,6 +87,8 @@ CREATE TABLE IF NOT EXISTS purchases (
     status VARCHAR(20) DEFAULT 'pending', -- pending, paid, failed
     raffle_id UUID NOT NULL REFERENCES raffles(id),
     price_tier_id UUID NOT NULL REFERENCES price_tiers(id),
+    amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    ticket_count INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

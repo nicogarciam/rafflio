@@ -3,6 +3,7 @@ import { Account, PriceTier } from '../../../types';
 import { PaymentMethod } from './PurchasePaymentMethodSelector';
 import { Button } from '../../ui/Button';
 import { CreditCard } from 'lucide-react';
+import { BankTransferInfo } from './BankTransferInfo';
 
 interface PurchasePaymentStepProps {
     paymentMethod: PaymentMethod;
@@ -15,6 +16,7 @@ interface PurchasePaymentStepProps {
     error?: string | null;
     purchaseId?: string;
     loading?: boolean;
+    raffleTitle?: string;
 }
 
 export const PurchasePaymentStep: React.FC<PurchasePaymentStepProps> = ({
@@ -27,7 +29,8 @@ export const PurchasePaymentStep: React.FC<PurchasePaymentStepProps> = ({
     paymentStatus,
     error,
     purchaseId,
-    loading
+    loading,
+    raffleTitle = ''
 }) => {
     // Render según método de pago
     if (paymentMethod === 'mercadopago') {
@@ -105,30 +108,17 @@ export const PurchasePaymentStep: React.FC<PurchasePaymentStepProps> = ({
 
     if (paymentMethod === 'bank_transfer') {
         return (
-            <div className="text-center space-y-6">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
-                    <CreditCard className="w-8 h-8 text-yellow-600" />
-                </div>
-                <div>
-                    <h3 className="text-xl font-semibold text-yellow-900 mb-2">
-                        ¡Compra registrada!
-                    </h3>
-                    <p className="text-gray-600">
-                        Por favor, realiza la transferencia y envía el comprobante a <strong>{account?.email}</strong> o WhatsApp <strong>{account?.whatsapp}</strong>.<br />
-                        Una vez verificado el pago, recibirás un email con el enlace para seleccionar tus números.
-                    </p>
-                </div>
-                <div className="flex space-x-4 pt-4">
-                    <Button onClick={onBack} variant="outline" className="flex-1">
-                        Volver
-                    </Button>
-                    <Button onClick={onComplete} className="flex-1">
-                        Finalizar
-                    </Button>
-                </div>
-            </div>
+            <BankTransferInfo
+                account={account!}
+                selectedTier={selectedTier}
+                raffleTitle={raffleTitle}
+                onBack={onBack}
+                onComplete={onComplete}
+            />
         );
     }
+
+// Obtener el título de la rifa si está disponible
 
     // cash
     return (

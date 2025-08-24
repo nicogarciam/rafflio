@@ -62,6 +62,8 @@ export interface Purchase {
   createdAt: string;
   raffleId: string;
   priceTierId: string;
+  amount: number; // Monto total de la compra
+  ticketCount: number; // Cantidad de tickets comprados
   priceTier?: PriceTier; // Opcional, para incluir detalles del tier de precio
   paymentMethod?: 'bank_transfer' | 'mercadopago' | 'cash' | '';
 }

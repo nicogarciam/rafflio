@@ -8,7 +8,7 @@ import { raffleService } from '../../services/raffle.service';
 import { getWhatsappShareMessageSafe } from '../../services/share.service';
 
 interface RaffleDetailProps {
-  onBuyTickets?: (raffle: Raffle) => void;
+  onBuyTickets?: (raffle: Raffle, tier?: any) => void;
 }
 
 export const RaffleDetail: React.FC<RaffleDetailProps> = ({ onBuyTickets }) => {
@@ -149,7 +149,13 @@ export const RaffleDetail: React.FC<RaffleDetailProps> = ({ onBuyTickets }) => {
           </h4>
           <div className="grid gap-2">
             {raffle.priceTiers.map((tier) => (
-              <div key={tier.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <button
+                key={tier.id}
+                type="button"
+                className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-400 focus:outline-none transition min-w-[120px]"
+                onClick={() => onBuyTickets && onBuyTickets(raffle, tier)}
+                disabled={!raffle.isActive}
+              >
                 <div>
                   <p className="font-medium text-gray-900">{tier.ticketCount} números</p>
                   <p className="text-sm text-gray-600">¡Mejor oferta!</p>
@@ -158,19 +164,30 @@ export const RaffleDetail: React.FC<RaffleDetailProps> = ({ onBuyTickets }) => {
                   <p className="font-bold text-green-600">${tier.amount}</p>
                   <p className="text-xs text-gray-500">${(tier.amount / tier.ticketCount).toFixed(2)} c/u</p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
 
-        <Button
-          onClick={handleBuyTickets}
-          className="w-full"
-          size="lg"
-          disabled={!raffle.isActive}
-        >
-          {raffle.isActive ? 'Comprar Números' : 'Rifa No Disponible'}
-        </Button>
+        <div className="flex flex-col gap-2">
+          {/* <Button
+            onClick={handleBuyTickets}
+            className="w-full"
+            size="lg"
+            disabled={!raffle.isActive}
+          >
+            {raffle.isActive ? 'Comprar Números' : 'Rifa No Disponible'}
+          </Button> */}
+          <Button
+            onClick={() => raffle && window.location.assign(`/cart?raffleId=${raffle.id}`)}
+            className="w-full"
+            size="lg"
+            variant="outline"
+            disabled={!raffle.isActive}
+          >
+            {raffle.isActive ? 'Comprar números 🛒' : 'Rifa No Disponible'}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

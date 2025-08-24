@@ -7,7 +7,8 @@ import { purchaseService } from '../services/purchase.service';
 import { ShoppingCart } from 'lucide-react';
 import { config } from '../lib/config';
 import { Info, Edit2, Mail, Link as LinkIcon, SortDesc, SortAsc } from 'lucide-react';
-import { sendPurchaseLinkEmail } from '../services/email.service';
+import { sendPurchaseLinkEmail, sendConfirmationEmail } from '../services/email.service';
+import { Purchase } from '../types';
 
 
 export const PurchasesView: React.FC = () => {
@@ -44,16 +45,26 @@ export const PurchasesView: React.FC = () => {
 
   // Función para copiar el enlace de selección de tickets
   const handleCopyLink = (purchaseId: string) => {
-    const url = `${config.app.baseUrl}/select-tickets/${purchaseId}`;
+    const url = `${config.app.baseUrl}/ticket-selector/${purchaseId}`;
     navigator.clipboard.writeText(url);
     setFeedbackModal({ message: 'Enlace copiado al portapapeles', type: 'success' });
   };
 
-  // Función para enviar el enlace por mail
-  const handleSendLinkEmail = async (to: string, purchaseId: string) => {
+  // Función para enviar el email correcto según si ya tiene números seleccionados
+  const handleSendLinkEmail = async (to: string, purchase: Purchase) => {
     try {
-      await sendPurchaseLinkEmail(to, purchaseId);
-      setFeedbackModal({ message: 'Enlace enviado por email', type: 'success' });
+
+      if (purchase.tickets.length === purchase.ticketCount) {
+        // Ya tiene números seleccionados: enviar confirmación completa
+        const numbers = purchase.tickets?.map((t: any) => t.number) || [];
+        const raffle = raffles.find(r => r.id === purchase.raffleId);
+        await sendConfirmationEmail(to, purchase.id, numbers, raffle ? raffle.prizes : []);
+        setFeedbackModal({ message: 'Email de confirmación enviado con los datos completos de la compra.', type: 'success' });
+      } else {
+        // No tiene números: enviar enlace para seleccionar
+        await sendPurchaseLinkEmail(to, purchase.id);
+        setFeedbackModal({ message: 'Enlace enviado por email para seleccionar los números.', type: 'success' });
+      }
     } catch (err) {
       setFeedbackModal({ message: 'No se pudo enviar el email', type: 'error' });
     }
@@ -106,26 +117,44 @@ export const PurchasesView: React.FC = () => {
   const onSubmitEditPurchase = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
     setEditLoading(true);
-    // Actualizar en base de datos
-    await purchaseService.updatePurchaseStatusAndPaymentMethod(
-      editPurchase.id,
-      editStatus,
-      editPaymentMethod
-    );
-    // Si el estado cambió a 'paid', enviar email de confirmación y selección de números
-    if (editStatus === 'paid' && editPurchase.status !== 'paid') {
-      try {
-
-        await sendPurchaseLinkEmail(editPurchase.email, editPurchase.id);
-        setFeedbackModal({ message: 'Email de confirmación enviado al comprador.', type: 'success' });
-      } catch (err) {
-        setFeedbackModal({ message: 'No se pudo enviar el email de confirmación.', type: 'error' });
+    let feedbackMsg = '';
+    try {
+      // Si se cancela, liberar tickets
+      if (editStatus === 'cancelled' && editPurchase.tickets && editPurchase.tickets.length > 0) {
+        const ticketIds = editPurchase.tickets.map((t: any) => t.id);
+        await purchaseService.assignTicketsToPurchase(null, ticketIds);
+        feedbackMsg = 'Compra cancelada y números liberados.';
       }
+      // Actualizar en base de datos
+      await purchaseService.updatePurchaseStatusAndPaymentMethod(
+        editPurchase.id,
+        editStatus,
+        editPaymentMethod
+      );
+      // Si el estado cambió a 'paid' o 'confirmed', enviar email correspondiente
+      if ((editStatus === 'paid' || editStatus === 'confirmed') && (editPurchase.status !== 'paid' && editPurchase.status !== 'confirmed')) {
+        const numbers = editPurchase.tickets?.map((t: any) => t.number) || [];
+        if (numbers.length > 0) {
+          // Ya tiene números seleccionados: enviar mail con detalle completo
+          // Buscar la rifa asociada para incluir info
+          const raffle = raffles.find(r => r.id === editPurchase.raffleId);
+          await sendConfirmationEmail(editPurchase.email, editPurchase.id, numbers, raffle ? raffle.prizes : []);
+          feedbackMsg = 'Email de confirmación enviado con los datos completos de la compra.';
+        } else {
+          // No tiene números: enviar mail para seleccionar
+          await sendPurchaseLinkEmail(editPurchase.email, editPurchase.id);
+          feedbackMsg = 'Email enviado para que el usuario seleccione sus números.';
+        }
+      }
+      editPurchase.status = editStatus;
+      editPurchase.paymentMethod = editPaymentMethod;
+      setEditPurchase(null);
+      setEditLoading(false);
+      setFeedbackModal({ message: feedbackMsg || 'Compra actualizada correctamente.', type: 'success' });
+    } catch (err) {
+      setEditLoading(false);
+      setFeedbackModal({ message: 'Ocurrió un error al actualizar la compra.', type: 'error' });
     }
-    editPurchase.status = editStatus;
-    editPurchase.paymentMethod = editPaymentMethod;
-    setEditPurchase(null);
-    setEditLoading(false);
     // Ideal: recargar compras o actualizar el estado global
   };
 
@@ -283,9 +312,11 @@ export const PurchasesView: React.FC = () => {
       </div>
       <div className="overflow-x-auto">
         <div className="min-w-[900px]">
-          <div className="grid grid-cols-[1.5fr_1.5fr_2fr_0.5fr] gap-2 bg-gray-100 rounded-t-lg px-4 py-2 text-xs font-semibold text-gray-700">
+          <div className="grid grid-cols-[1.2fr_1.2fr_0.8fr_0.8fr_1.5fr_0.5fr] gap-2 bg-gray-100 rounded-t-lg px-4 py-2 text-xs font-semibold text-gray-700">
             <div>Comprador</div>
             <div>Rifa y Paquete</div>
+            <div>Monto</div>
+            <div>Cantidad</div>
             <div>Estado y Números</div>
             <div className="text-right pr-2">Acciones</div>
           </div>
@@ -293,7 +324,7 @@ export const PurchasesView: React.FC = () => {
             const raffle = raffles.find(r => r.id === purchase.raffleId);
             const tier = raffle?.priceTiers.find(t => t.id === purchase.priceTierId);
             return (
-              <div key={purchase.id} className="grid grid-cols-[1.5fr_1.5fr_2fr_0.5fr] gap-2 border-b px-4 py-3 items-center text-sm bg-white hover:bg-gray-50 transition-all">
+              <div key={purchase.id} className="grid grid-cols-[1.2fr_1.2fr_0.8fr_0.8fr_1.5fr_0.5fr] gap-2 border-b px-4 py-3 items-center text-sm bg-white hover:bg-gray-50 transition-all">
                 {/* Columna 1: Comprador */}
                 <div>
                   <div className="font-semibold text-gray-900">{purchase.fullName}</div>
@@ -303,12 +334,24 @@ export const PurchasesView: React.FC = () => {
                 {/* Columna 2: Rifa y Paquete */}
                 <div>
                   <div className="font-medium text-gray-900">{raffle?.title}</div>
-                  <div className="text-xs text-gray-600">{tier?.ticketCount} números - ${tier?.amount?.toFixed(2)}</div>
+                  <div className="text-xs text-gray-600">
+                    {(!purchase.priceTierId || purchase.priceTierId === 'custom')
+                      ? `custom (${purchase.ticketCount} números - $${purchase.amount?.toLocaleString('es-AR', { minimumFractionDigits: 2 })})`
+                      : `${tier?.ticketCount} números - $${tier?.amount?.toFixed(2)}`}
+                  </div>
                   {/* Mostrar Preference ID solo para mercadopago */}
                   {purchase.paymentMethod === 'mercadopago' && (
                     <div className="text-xs text-gray-500">Preference ID: {purchase.preferenceId || 'N/A'}</div>
                   )}
                   <div className="text-xs text-gray-500">Método: {purchase.paymentMethod === 'mercadopago' ? 'MercadoPago' : purchase.paymentMethod === 'bank_transfer' ? 'Transferencia' : purchase.paymentMethod === 'cash' ? 'Efectivo' : 'N/A'}</div>
+                </div>
+                {/* Columna 3: Monto */}
+                <div>
+                  <div className="font-semibold text-green-700">${purchase.amount?.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</div>
+                </div>
+                {/* Columna 4: Cantidad */}
+                <div>
+                  <div className="font-semibold text-blue-900">{purchase.ticketCount}</div>
                 </div>
                 {/* Columna 3: Estado y Números */}
                 <div>
@@ -348,7 +391,7 @@ export const PurchasesView: React.FC = () => {
                   <button
                     title="Enviar enlace por email"
                     className="p-1 rounded hover:bg-green-100"
-                    onClick={() => handleSendLinkEmail(purchase.email, purchase.id)}
+                    onClick={() => handleSendLinkEmail(purchase.email, purchase)}
                   >
                     <Mail className="w-5 h-5 text-green-600" />
                   </button>

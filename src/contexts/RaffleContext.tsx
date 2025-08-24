@@ -34,6 +34,7 @@ interface RaffleContextType {
   updateTickets: (purchaseId: string, ticketNumbers: string[]) => Promise<void>;
   getAvailableTickets: (raffleId: string) => Promise<Ticket[]>;
   refreshRaffles: () => Promise<void>;
+  deleteRaffle: (raffleId: string) => Promise<boolean>;
   refreshPurchases: (page?: number, pageSize?: number, filters?: any) => Promise<void>;
   getPurchaseById: (purchaseId: string) => Promise<Purchase | null>;
 }
@@ -148,6 +149,9 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         raffleId: purchaseData.raffleId,
         priceTierId: purchaseData.priceTierId,
         preferenceId: purchaseData.preferenceId || '', // Asegúrate de que preferenceId esté definido
+        amount: purchaseData.amount,
+        ticketCount: purchaseData.ticketCount,
+        paymentMethod: purchaseData.paymentMethod,
       });
 
       if (newPurchase) {
@@ -251,6 +255,20 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const deleteRaffle = async (raffleId: string) => {
+    try {
+      setError(null);
+      const ok = await raffleService.deleteRaffle(raffleId);
+      if (ok) {
+        setRaffles(prev => prev.filter(r => r.id !== raffleId));
+      }
+      return ok;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar la rifa');
+      return false;
+    }
+  };
+
   return (
     <RaffleContext.Provider value={{
       raffles,
@@ -274,7 +292,8 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       getAvailableTickets,
       refreshRaffles,
       refreshPurchases,
-      getPurchaseById
+      getPurchaseById,
+      deleteRaffle
     }}>
       {children}
     </RaffleContext.Provider>

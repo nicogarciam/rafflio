@@ -330,7 +330,7 @@ app.post('/api/send-confirmation-email', async (req: any, res: any) => {
         <p><strong>${numbersList}</strong></p>
         <h3>Premios de la rifa:</h3>
         <ul>${prizesHtml}</ul>
-        <p>Puedes ver tu compra y seleccionar tus números en: <a href="${url}">${url}</a></p>
+        <p>Puedes ver tu compra en: <a href="${url}">VER COMPRA</a></p>
         <p>¡Mucha suerte!</p>
       `,
     });

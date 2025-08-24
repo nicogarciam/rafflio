@@ -158,13 +158,22 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
         </div>
 
         <div className="flex flex-col gap-2">
-          <Button
+          {/* <Button
             onClick={() => onBuyTickets(raffle)}
             className="w-full"
             size="lg"
             disabled={!raffle.isActive}
           >
             {raffle.isActive ? 'Comprar Números' : 'Rifa No Disponible'}
+          </Button> */}
+          <Button
+            onClick={() => window.location.assign(`/cart?raffleId=${raffle.id}`)}
+            className="w-full"
+            size="lg"
+            variant="outline"
+            disabled={!raffle.isActive}
+          >
+            {raffle.isActive ? 'Comprar números 🛒' : 'Rifa No Disponible'}
           </Button>
           <Link
             to={`/raffle/view/${raffle.id}`}

@@ -22,6 +22,7 @@ import PurchasesView from './views/PurchasesView';
 import { PaymentSuccessPage } from './views/PaymentSuccessPage';
 import RaffleDetailView from './views/RaffleDetailView';
 import AdminUserManagementView from './views/AdminUserManagementView';
+import CartPage from './views/CartPage';
 import { RequireAuth } from './components/auth/RequireAuth';
 import { CreateAccountForm } from './components/admin/CreateAccountForm';
 import { CreateRaffleForm } from './components/raffles/CreateRaffleForm';
@@ -94,6 +95,7 @@ const AppContent: React.FC = () => {
           {/* Rutas públicas */}
           <Route path="/purchases" element={<PurchasesView />} />
           <Route path="/raffle/view/:raffleId" element={<RaffleDetailView onBuyTickets={handleBuyTickets} />} />
+          <Route path="/cart" element={<CartPage />} />
           <Route path="/payment/:purchaseId?/success" element={<PaymentSuccessPage />} />
           <Route path="/ticket-selector/:purchaseId" element={<TicketSelector purchaseId={selectedPurchaseId || ''} onClose={handleTicketSelectorClose} />} />
           <Route path="/login" element={<LoginForm />} />

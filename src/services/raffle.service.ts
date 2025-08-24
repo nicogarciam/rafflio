@@ -12,6 +12,64 @@ export interface CreatePurchaseData {
 }
 
 class RaffleService {
+  async deleteRaffle(raffleId: string): Promise<boolean> {
+    if (!supabase) {
+      // Eliminar de mock
+      this.mockRaffles = this.mockRaffles.filter(r => r.id !== raffleId);
+      return true;
+    }
+    try {
+      // Eliminar compras
+      const { error: purchasesError } = await supabase
+        .from('purchases')
+        .delete()
+        .eq('raffle_id', raffleId);
+      if (purchasesError) {
+        console.error('Error deleting purchases:', purchasesError);
+        return false;
+      }
+      // Eliminar premios
+      const { error: prizesError } = await supabase
+        .from('prizes')
+        .delete()
+        .eq('raffle_id', raffleId);
+      if (prizesError) {
+        console.error('Error deleting prizes:', prizesError);
+        return false;
+      }
+      // Eliminar priceTiers
+      const { error: priceTiersError } = await supabase
+        .from('price_tiers')
+        .delete()
+        .eq('raffle_id', raffleId);
+      if (priceTiersError) {
+        console.error('Error deleting price tiers:', priceTiersError);
+        return false;
+      }
+      // Eliminar tickets
+      const { error: ticketsError } = await supabase
+        .from('tickets')
+        .delete()
+        .eq('raffle_id', raffleId);
+      if (ticketsError) {
+        console.error('Error deleting tickets:', ticketsError);
+        return false;
+      }
+      // Finalmente eliminar la rifa
+      const { error: raffleError } = await supabase
+        .from('raffles')
+        .delete()
+        .eq('id', raffleId);
+      if (raffleError) {
+        console.error('Error deleting raffle:', raffleError);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error in deleteRaffle:', error instanceof Error ? error.message : String(error));
+      return false;
+    }
+  }
 
   async getRaffles(): Promise<Raffle[]> {
     if (!supabase) {
@@ -159,6 +217,8 @@ class RaffleService {
       return this.mockRaffles[idx];
     }
     try {
+      console.log('Updating raffle:', id, updates);
+      // 1. Actualizar rifa base
       const { data, error } = await supabase
         .from('raffles')
         .update({
@@ -176,8 +236,61 @@ class RaffleService {
         console.error('Error updating raffle:', error);
         return null;
       }
-      // No actualiza premios ni priceTiers aquí (se puede extender si se requiere)
-      return this.transformRaffleData(data);
+
+      // 2. Actualizar premios (prizes)
+      if (updates.prizes) {
+        // Eliminar premios existentes
+        const { error: delPrizesError } = await supabase
+          .from('prizes')
+          .delete()
+          .eq('raffle_id', id);
+        if (delPrizesError) {
+          console.error('Error deleting old prizes:', delPrizesError);
+        }
+        // Insertar nuevos premios
+        if (updates.prizes.length > 0) {
+          const prizesData = updates.prizes.map(prize => ({
+            name: prize.name,
+            description: prize.description,
+            raffle_id: id,
+          }));
+          const { error: insPrizesError } = await supabase
+            .from('prizes')
+            .insert(prizesData);
+          if (insPrizesError) {
+            console.error('Error inserting new prizes:', insPrizesError);
+          }
+        }
+      }
+
+      // 3. Actualizar priceTiers
+      if (updates.priceTiers) {
+        // Eliminar todos los priceTiers existentes (aunque estén en uso)
+        const { error: delTiersError } = await supabase
+          .from('price_tiers')
+          .delete()
+          .eq('raffle_id', id);
+        if (delTiersError) {
+          console.error('Error deleting all priceTiers:', delTiersError);
+        }
+        // Insertar todos los nuevos priceTiers
+        if (updates.priceTiers.length > 0) {
+          const priceTiersData = updates.priceTiers.map(tier => ({
+            amount: tier.amount,
+            ticket_count: tier.ticketCount,
+            raffle_id: id,
+          }));
+          const { error: insTiersError } = await supabase
+            .from('price_tiers')
+            .insert(priceTiersData);
+          if (insTiersError) {
+            console.error('Error inserting new priceTiers:', insTiersError);
+          }
+        }
+      }
+
+      // 4. Retornar rifa actualizada
+      return await this.getRaffleById(id);
     } catch (error) {
       console.error('Error in updateRaffle:', error instanceof Error ? error.message : String(error));
       return null;
