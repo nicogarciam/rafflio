@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Plus, TrendingUp, Users, DollarSign, Gift, Calendar, BarChart3 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { useRaffle } from '../../contexts/RaffleContext';
+import { BarChart3, Calendar, DollarSign, Gift, Plus, TrendingUp, Users } from 'lucide-react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useRaffle } from '../../contexts/RaffleContext';
+import { Button } from '../ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 
 export const AdminDashboard: React.FC = () => {
   const { raffles, purchases } = useRaffle();

@@ -1,11 +1,9 @@
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useRaffle } from '../contexts/RaffleContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
-import { SortAsc, SortDesc } from 'lucide-react';
-import { Pencil, Trash2, Eye } from 'lucide-react';
+import { useRaffle } from '../contexts/RaffleContext';
 
 export const AdminRafflesView: React.FC = () => {
   const {

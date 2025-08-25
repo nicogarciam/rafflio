@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Modal } from '../ui/Modal';
+import React, { useEffect, useState } from 'react';
+import { useCart } from '../../contexts/CartContext';
 import { useRaffle } from '../../contexts/RaffleContext';
-import { Raffle, PriceTier, Account, Ticket } from '../../types';
 import { usePaymentStatus } from '../../hooks/usePaymentStatus';
-import { mercadoPagoService } from '../../services/mercadopago';
 import { config } from '../../lib/config';
+import { mercadoPagoService } from '../../services/mercadopago';
+import { PriceTier, Raffle } from '../../types';
+import { Modal } from '../ui/Modal';
+import { PaymentMethod, PurchasePaymentMethodSelector } from './PurchaseFlow/PurchasePaymentMethodSelector';
+import { PurchasePaymentStep } from './PurchaseFlow/PurchasePaymentStep';
 import { PurchaseTierSelector } from './PurchaseFlow/PurchaseTierSelector';
 import { PurchaseUserForm } from './PurchaseFlow/PurchaseUserForm';
-import { PurchasePaymentMethodSelector, PaymentMethod } from './PurchaseFlow/PurchasePaymentMethodSelector';
-import { PurchasePaymentStep } from './PurchaseFlow/PurchasePaymentStep';
-import { useCart } from '../../contexts/CartContext';
 
 
 interface PurchaseFlowProps {
@@ -44,7 +44,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
 
 
   useEffect(() => {
-    console.log('PurchaseFlow isOpen changed:', isOpen, 'initialTier:', initialTier);
+    /* console.log('PurchaseFlow isOpen changed:', isOpen, 'initialTier:', initialTier); */
 
     if (initialTier) {
       setSelectedTier(initialTier);
@@ -106,7 +106,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
     if (!selectedTier || !paymentMethod) return;
     setLoading(true);
     setError(null);
-    console.log('selected Tier:', selectedTier);
+    /* console.log('selected Tier:', selectedTier); */
     try {
       const purchaseData: Omit<import('../../types').Purchase, "id" | "paymentId" | "createdAt"> = {
         fullName: userData.fullName,
@@ -121,7 +121,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
         tickets: [],
         paymentMethod: paymentMethod
       };
-      console.log('Creating purchase with data:', purchaseData);
+      /* console.log('Creating purchase with data:', purchaseData); */
       const purchase = await createPurchase(purchaseData);
       setPurchaseId(purchase.id);
       if (paymentMethod === 'mercadopago') {
@@ -155,7 +155,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
   };
 
   const handlePaymentStepComplete = () => {
-    console.log('Purchase completed or modal closed');
+    /* console.log('Purchase completed or modal closed'); */
     setStep(1);
     setSelectedTier(null);
     setUserData({ fullName: '', email: '', phone: '' });
@@ -169,7 +169,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
 
   // Suscribirse a actualizaciones de estado de pago
   usePaymentStatus(purchaseId, (data: any) => {
-    console.log('Payment status update received:', data);
+    /* console.log('Payment status update received:', data); */
     setPaymentStatus(data.status);
     if (data.status === 'approved') {
       updatePurchaseStatus(data.purchaseId, 'paid');

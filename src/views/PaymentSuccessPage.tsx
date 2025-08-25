@@ -1,10 +1,9 @@
 import React from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { TicketSelector } from '../components/tickets/TicketSelector';
-import { mercadoPagoService } from '../services/mercadopago';
-import { raffleService } from '../services/raffle.service';
-import { purchaseService } from '../services/purchase.service';
 import { useRaffle } from '../contexts/RaffleContext';
+import { mercadoPagoService } from '../services/mercadopago';
+import { purchaseService } from '../services/purchase.service';
 
 interface PaymentParams {
   payment_id?: string;

@@ -1,31 +1,27 @@
-import { EditRaffleView } from './views/EditRaffleView';
 import { AdminRafflesView } from './views/AdminRafflesView';
+import { EditRaffleView } from './views/EditRaffleView';
 // import { EditRaffleForm } se creará luego
+import { Users } from 'lucide-react';
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { AdminDashboard } from './components/admin/AdminDashboard';
+import { LoginForm } from './components/auth/LoginForm';
+import { RequireAuth } from './components/auth/RequireAuth';
+import { Navbar } from './components/layout/Navbar';
+import { PurchaseFlow } from './components/purchase/PurchaseFlow';
+import { CreateRaffleForm } from './components/raffles/CreateRaffleForm';
+import { TicketSelector } from './components/tickets/TicketSelector';
+import { ConfigSetup } from './components/ui/ConfigSetup';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RaffleProvider, useRaffle } from './contexts/RaffleContext';
-import { Navbar } from './components/layout/Navbar';
-import { LoginForm } from './components/auth/LoginForm';
-import { RaffleCard } from './components/raffles/RaffleCard';
-import { AdminDashboard } from './components/admin/AdminDashboard';
-import { PurchaseFlow } from './components/purchase/PurchaseFlow';
-import { TicketSelector } from './components/tickets/TicketSelector';
-import { Card, CardContent } from './components/ui/Card';
-import { ConfigSetup } from './components/ui/ConfigSetup';
-import { Loader2, Users, ShoppingCart, Ticket } from 'lucide-react';
-import { Raffle } from './types';
 import { config } from './lib/config';
-import TestMercadoPago from './components/purchase/TestMercadoPago';
-import RafflesView from './views/RafflesView';
-import PurchasesView from './views/PurchasesView';
-import { PaymentSuccessPage } from './views/PaymentSuccessPage';
-import RaffleDetailView from './views/RaffleDetailView';
+import { Raffle } from './types';
 import AdminUserManagementView from './views/AdminUserManagementView';
 import CartPage from './views/CartPage';
-import { RequireAuth } from './components/auth/RequireAuth';
-import { CreateAccountForm } from './components/admin/CreateAccountForm';
-import { CreateRaffleForm } from './components/raffles/CreateRaffleForm';
+import { PaymentSuccessPage } from './views/PaymentSuccessPage';
+import PurchasesView from './views/PurchasesView';
+import RaffleDetailView from './views/RaffleDetailView';
+import RafflesView from './views/RafflesView';
 
 const AppContent: React.FC = () => {
   useAuth();

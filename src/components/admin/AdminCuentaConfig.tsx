@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
 import { Account } from '../../types';
+import { Button } from '../ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
+import { Input } from '../ui/Input';
 
 // Puedes reemplazar esto por un fetch real a la API o Supabase
 const getActualAccount = async (): Promise<Account> => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useCart } from '../../contexts/CartContext';
-import { Ticket, PriceTier } from '../../types';
+import { PriceTier, Ticket } from '../../types';
 
 interface TicketSelectorCartProps {
   tickets: Ticket[];

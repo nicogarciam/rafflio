@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useParams } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { useRaffle } from '../../contexts/RaffleContext';
-import { CheckCircle, Circle, Lock, Sparkles, Mail, Wallet } from 'lucide-react';
-import { mercadoPagoService } from '../../services/mercadopago';
-import { sendConfirmationEmail, sendPurchaseLinkEmail } from '../../services/email.service';
-import { Purchase, Ticket } from '../../types';
+import { CheckCircle, Circle, Lock, Mail, Sparkles, Wallet } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { JSX } from 'react/jsx-runtime';
+import { useRaffle } from '../../contexts/RaffleContext';
+import { sendConfirmationEmail } from '../../services/email.service';
+import { mercadoPagoService } from '../../services/mercadopago';
+import { Purchase, Ticket } from '../../types';
+import { Button } from '../ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 
 interface TicketSelectorProps {
   purchaseId?: string;
@@ -77,14 +76,14 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
     // --- Validación Transferencia/Efectivo ---
     const validateTransfer = async (p: Purchase) => {
       setValidationType('Validando pago por transferencia o contado');
-      console.log('Validando pago por transferencia o efectivo');
+      /* console.log('Validando pago por transferencia o efectivo'); */
       if (p.status === 'paid' && (p.paymentMethod === 'bank_transfer' || p.paymentMethod === 'cash')) {
         // Si la cantidad de tickets coincide con el ticketCount, actualizar a confirmed
         if (p.tickets && p.tickets.length === p.ticketCount) {
           await updatePurchaseStatus(p.id, 'confirmed');
           p.status = 'confirmed';
         }
-        console.log('Pago confirmado por transferencia o efectivo');
+        /* console.log('Pago confirmado por transferencia o efectivo'); */
         setValidationStep('Pago confirmado');
         setPaymentError(null);
         setIsVerifying(false);
@@ -94,7 +93,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         return true;
       }
       if (p.status !== 'paid' && (p.paymentMethod === 'bank_transfer' || p.paymentMethod === 'cash')) {
-        console.log('Pago aún no confirmado por transferencia o efectivo');
+        /* console.log('Pago aún no confirmado por transferencia o efectivo'); */
         setValidationStep('El pago aun no fue confirmado');
         setPaymentError('Pago aún no confirmado');
         setFailedPaymentValidation(true);
@@ -111,7 +110,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
       try {
         setValidationType('Consultando compra...');
         setValidationStep('Buscando la compra en la base de datos');
-        console.log(`🔍 Consultando compra con ID: ${purchaseId}`);
+       /*  console.log(`🔍 Consultando compra con ID: ${purchaseId}`); */
         const p = await getPurchaseById(purchaseId);
         await new Promise(resolve => setTimeout(resolve, 100));
         if (!p) {
@@ -126,7 +125,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         if ( p.ticketCount) {
           setMaxSelections(p.ticketCount);
         }
-        console.log('Detalles de la compra:', p);
+        /* console.log('Detalles de la compra:', p); */
         if (p.status === 'paid' && p.tickets && p.tickets.length === p.ticketCount) {
           p.status = 'confirmed'; // Simular que ya está confirmada si tiene todos los tickets
           updatePurchaseStatus(p.id, 'confirmed');
@@ -151,7 +150,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         setValidationType('No se encontró pago aprobado, reintentando...');
         setValidationStep('Esperando confirmación de pago');
         attempts++;
-        console.log(`🔄 Intento ${attempts}: Pago aún no confirmado`);
+       /*  console.log(`🔄 Intento ${attempts}: Pago aún no confirmado`); */
         setFailedAttempts(attempts);
         setPaymentError('Pago aún no confirmado, reintentando en 10s...');
         setCountdown(10);
@@ -164,7 +163,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           setFailedPaymentValidation(true);
           if (preferenceId) {
             try {
-              console.log(`🔍 Consultando preferencia de pago con ID: ${preferenceId}`);
+              /* console.log(`🔍 Consultando preferencia de pago con ID: ${preferenceId}`); */
               await new Promise(resolve => setTimeout(resolve, 1000));
               const preference = await mercadoPagoService.getPreference(preferenceId);
               if (preference && preference.init_point) {
@@ -256,7 +255,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         // Enviar email de selección de números y premios
         if (updatedPurchase?.email && raffle) {
           try {
-            console.log('Enviando email de confirmación a:', updatedPurchase.email);
+            /* console.log('Enviando email de confirmación a:', updatedPurchase.email); */
             await sendConfirmationEmail(
               updatedPurchase.email,
               purchaseId,
