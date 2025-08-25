@@ -125,7 +125,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         if ( p.ticketCount) {
           setMaxSelections(p.ticketCount);
         }
-        /* console.log('Detalles de la compra:', p); */
+        console.log('Detalles de la compra:', p);
         if (p.status === 'paid' && p.tickets && p.tickets.length === p.ticketCount) {
           p.status = 'confirmed'; // Simular que ya está confirmada si tiene todos los tickets
           updatePurchaseStatus(p.id, 'confirmed');

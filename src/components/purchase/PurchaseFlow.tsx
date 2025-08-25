@@ -124,6 +124,11 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
       /* console.log('Creating purchase with data:', purchaseData); */
       const purchase = await createPurchase(purchaseData);
       setPurchaseId(purchase.id);
+      // Asignar tickets como vendidos y dejar compra pendiente
+      if (selectedNumbers && selectedNumbers.length > 0) {
+        await updateTickets(purchase.id, selectedNumbers.map(t => t.id));
+        clearCart();
+      }
       if (paymentMethod === 'mercadopago') {
         // Crear preferencia de MercadoPago
         const paymentData = {
@@ -139,12 +144,6 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
         await updatePurchasePreferenceId(purchase.id, preference.id);
         await sendPurchaseLinkEmail(purchase.email, purchase.id);
         window.open(preference.init_point, '_blank', 'noopener,noreferrer');
-      } else {
-        // Asignar tickets como vendidos y dejar compra pendiente
-        if (selectedNumbers && selectedNumbers.length > 0) {
-          await updateTickets(purchase.id, selectedNumbers.map(t => t.id));
-          clearCart();
-        }
       }
       setLoading(false);
       setStep(4);
