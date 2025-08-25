@@ -107,6 +107,7 @@ export const PurchasePaymentStep: React.FC<PurchasePaymentStepProps> = ({
     }
 
     if (paymentMethod === 'bank_transfer') {
+        console.log('Rendering BankTransferInfo with account:', account, 'selectedTier:', selectedTier, 'raffleTitle:', raffleTitle);
         return (
             <BankTransferInfo
                 account={account!}

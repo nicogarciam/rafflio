@@ -47,7 +47,7 @@ export const PaymentSuccessPage: React.FC = () => {
         if (p?.status === 'confirmed') {
           setLoading(false);
           return;
-        } 
+        }
         
 
         if (p?.paymentMethod !== 'mercadopago') {

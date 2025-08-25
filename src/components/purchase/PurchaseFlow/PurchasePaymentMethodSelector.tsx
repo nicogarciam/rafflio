@@ -26,7 +26,8 @@ export const PurchasePaymentMethodSelector: React.FC<PurchasePaymentMethodSelect
                             <span className="text-blue-900 font-bold">{selectedTier.ticketCount} números</span>
                         </div>
                         <div className="flex flex-col items-center">
-                            <span className="text-green-700 font-extrabold text-2xl leading-none">${selectedTier.amount}</span>
+                            <span className="text-green-700 font-extrabold text-2xl leading-none">
+                                {selectedTier.amount.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</span>
                             <span className="text-xs text-gray-500 mt-0.5">{(selectedTier.amount / selectedTier.ticketCount).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })} por número</span>
                         </div>
                     </div>
@@ -39,7 +40,7 @@ export const PurchasePaymentMethodSelector: React.FC<PurchasePaymentMethodSelect
                 >
                     <CreditCard className="w-6 h-6 md:w-8 md:h-8 text-blue-600 mb-1" />
                     <span className="font-semibold text-xs md:text-base">MercadoPago</span>
-                    <span className="text-[10px] md:text-xs text-gray-500 mt-0.5">Tarjeta, débito, QR, etc.</span>
+                    <span className="text-[10px] md:text-xs text-gray-500 mt-0.5">Plata en Cuenta, Tarjeta, débito.</span>
                 </div>
                 <div
                     className={`border-2 rounded-lg p-3 md:p-6 cursor-pointer transition-all duration-200 flex flex-col items-center ${paymentMethod === 'bank_transfer' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200 hover:border-yellow-400'}`}

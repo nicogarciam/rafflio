@@ -12,8 +12,6 @@ import { PurchasePaymentStep } from './PurchaseFlow/PurchasePaymentStep';
 import { useCart } from '../../contexts/CartContext';
 
 
-
-
 interface PurchaseFlowProps {
   raffle: Raffle;
   isOpen: boolean;
@@ -44,19 +42,19 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
 
   const { createPurchase, updatePurchaseStatus, updatePurchasePreferenceId } = useRaffle();
 
-  // Si initialTier cambia (por ejemplo, al abrir el modal con otro tier), actualizar el estado
+
   useEffect(() => {
-    console.log('Initial tier changed:', initialTier);
+    console.log('PurchaseFlow isOpen changed:', isOpen, 'initialTier:', initialTier);
 
     if (initialTier) {
       setSelectedTier(initialTier);
-      setStep(2); // Ir directo al paso de datos del usuario si hay tier preseleccionado
+      setStep(2); // SIEMPRE empezar en el paso de datos del comprador
     } else {
       setSelectedTier(null);
       setStep(1);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTier, isOpen]);
+
+  }, [isOpen]);
 
   useEffect(() => {
     const mpPublicKey = config.mercadopago.publicKey;
@@ -126,7 +124,6 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
       console.log('Creating purchase with data:', purchaseData);
       const purchase = await createPurchase(purchaseData);
       setPurchaseId(purchase.id);
-
       if (paymentMethod === 'mercadopago') {
         // Crear preferencia de MercadoPago
         const paymentData = {
@@ -158,6 +155,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
   };
 
   const handlePaymentStepComplete = () => {
+    console.log('Purchase completed or modal closed');
     setStep(1);
     setSelectedTier(null);
     setUserData({ fullName: '', email: '', phone: '' });
@@ -171,6 +169,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
 
   // Suscribirse a actualizaciones de estado de pago
   usePaymentStatus(purchaseId, (data: any) => {
+    console.log('Payment status update received:', data);
     setPaymentStatus(data.status);
     if (data.status === 'approved') {
       updatePurchaseStatus(data.purchaseId, 'paid');

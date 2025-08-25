@@ -52,6 +52,7 @@ export const CartView: React.FC = () => {
     }
     return { monto, tier: tierUsado };
   }
+  
   const montoTotal = raffle ? calcularPrecio(raffle.priceTiers, selectedNumbers.length).monto : 0;
   // Buscar el tier real de menor cantidad de números para usar su id
   const minTier = raffle && raffle.priceTiers.length > 0
@@ -98,10 +99,15 @@ export const CartView: React.FC = () => {
         <PurchaseFlow
           raffle={raffle}
           isOpen={showModal}
-          onClose={() => setShowModal(false)}
+          onClose={() => {
+            setShowModal(false);
+            // Refrescar los tickets disponibles y la vista del carrito al cerrar
+            if (raffle) getAvailableTickets(raffle.id).then(setAvailableTickets);
+          }}
           onPurchaseComplete={() => {
             clearCart();
             setShowModal(false);
+            if (raffle) getAvailableTickets(raffle.id).then(setAvailableTickets);
           }}
           initialTier={customTier}
         />

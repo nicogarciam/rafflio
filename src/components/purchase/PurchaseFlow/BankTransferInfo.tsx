@@ -101,6 +101,8 @@ export const BankTransferInfo: React.FC<BankTransferInfoProps> = ({
                 <div className="flex items-center gap-2 mt-1">
                   <Mail className="w-5 h-5 text-blue-700" />
                   <span className="font-semibold text-base">{account.email}</span>
+                  <button onClick={() => handleCopy(account.email, 'email')} className="ml-1 px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300">Copiar</button>
+                  {copied === 'email' && <span className="text-green-600 text-xs ml-2 animate-pulse">¡Copiado!</span>}
                 </div>
               </div>
             </li>

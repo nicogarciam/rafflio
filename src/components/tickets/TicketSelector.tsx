@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -23,6 +24,7 @@ interface TicketSelectorProps {
 
 export const TicketSelector: React.FC<TicketSelectorProps> = ({
   purchaseId: propPurchaseId, paymentInfo, onClose }) => {
+  const navigate = useNavigate();
   const params = useParams<{ purchaseId?: string }>();
   const purchaseId = propPurchaseId || params.purchaseId || '';
   const { getPurchaseById, getRaffleById, updateTickets, updatePurchaseStatus } = useRaffle();
@@ -73,11 +75,15 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
     };
 
     // --- Validación Transferencia/Efectivo ---
-    const validateTransfer = (p: Purchase) => {
+    const validateTransfer = async (p: Purchase) => {
       setValidationType('Validando pago por transferencia o contado');
       console.log('Validando pago por transferencia o efectivo');
       if (p.status === 'paid' && (p.paymentMethod === 'bank_transfer' || p.paymentMethod === 'cash')) {
-
+        // Si la cantidad de tickets coincide con el ticketCount, actualizar a confirmed
+        if (p.tickets && p.tickets.length === p.ticketCount) {
+          await updatePurchaseStatus(p.id, 'confirmed');
+          p.status = 'confirmed';
+        }
         console.log('Pago confirmado por transferencia o efectivo');
         setValidationStep('Pago confirmado');
         setPaymentError(null);
@@ -117,11 +123,11 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         setPurchase(p);
         setValidationType('Compra encontrada');
         setValidationStep('¡La compra fue encontrada correctamente!');
-        if (p.priceTier && p.priceTier.ticketCount) {
-          setMaxSelections(p.priceTier.ticketCount);
+        if ( p.ticketCount) {
+          setMaxSelections(p.ticketCount);
         }
         console.log('Detalles de la compra:', p);
-        if (p.status === 'paid' && p.tickets && p.tickets.length === p.priceTier?.ticketCount) {
+        if (p.status === 'paid' && p.tickets && p.tickets.length === p.ticketCount) {
           p.status = 'confirmed'; // Simular que ya está confirmada si tiene todos los tickets
           updatePurchaseStatus(p.id, 'confirmed');
         }
@@ -137,7 +143,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           return;
         }
         // Validación transferencia/efectivo
-        if (validateTransfer(p)) return;
+        if (await validateTransfer(p)) return;
         // Validación MercadoPago
         const mpValid = await validateMercadoPago(p);
         if (mpValid) return;
@@ -369,7 +375,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
             </div>
           </div>
         </div>
-        <Button onClick={onClose} className="w-full max-w-md">
+        <Button onClick={() => navigate('/')} className="w-full max-w-md">
           Finalizar
         </Button>
       </div>
@@ -427,7 +433,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           </p>
         </div>
 
-        <Button onClick={onClose} className="w-full max-w-md">
+        <Button onClick={() => navigate('/')} className="w-full max-w-md">
           Finalizar
         </Button>
       </div>
