@@ -177,7 +177,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
       if (userData.email && data.purchaseId) {
         sendPurchaseLinkEmail(userData.email, data.purchaseId);
       }
-      onPurchaseComplete(data.purchaseId);
+      /* onPurchaseComplete(data.purchaseId); */
       setLoading(false);
     } else if (data.status === 'rejected' || data.status === 'cancelled' || data.status === 'failed') {
       updatePurchaseStatus(data.purchaseId, 'failed');
