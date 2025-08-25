@@ -52,21 +52,20 @@ export const CartView: React.FC = () => {
     }
     return { monto, tier: tierUsado };
   }
-  
+
   const montoTotal = raffle ? calcularPrecio(raffle.priceTiers, selectedNumbers.length).monto : 0;
   // Buscar el tier real de menor cantidad de números para usar su id
-  const minTier = raffle && raffle.priceTiers.length > 0
-    ? raffle.priceTiers.reduce((min, t) => t.ticketCount < min.ticketCount ? t : min, raffle.priceTiers[0])
-    : null;
+  const theTier = raffle && raffle.priceTiers.find(t => t.ticketCount === selectedNumbers.length);
   // Si la cantidad de seleccionados no coincide con ningún tier, es custom
-  const isCustom = raffle && !raffle.priceTiers.some(t => t.ticketCount === selectedNumbers.length);
-  const customTier = raffle && minTier ? {
-    id: isCustom ? 'custom' : minTier.id, // 'custom' si es custom, id real si coincide
+  const isCustom = raffle && !theTier;
+  console.log('isCustom:', isCustom, 'theTier:', theTier);
+  const customTier = raffle ? {
+    id: isCustom ? 'custom' : (theTier ? theTier.id : 'custom'),
     amount: montoTotal,
     ticketCount: selectedNumbers.length,
     raffleId: raffle.id
   } : null;
-
+  console.log('customTier:', customTier);
   if (!raffle) return <div>Selecciona una rifa para comenzar.</div>;
 
   return (

@@ -312,11 +312,10 @@ export const PurchasesView: React.FC = () => {
       </div>
       <div className="overflow-x-auto">
         <div className="min-w-[900px]">
-          <div className="grid grid-cols-[1.2fr_1.2fr_0.8fr_0.8fr_1.5fr_0.5fr] gap-2 bg-gray-100 rounded-t-lg px-4 py-2 text-xs font-semibold text-gray-700">
+          <div className="grid grid-cols-[1.3fr_1.3fr_0.8fr_0.8fr_1.5fr] gap-2 bg-gray-100 rounded-t-lg px-4 py-2 text-xs font-semibold text-gray-700">
             <div>Comprador</div>
             <div>Rifa y Paquete</div>
-            <div>Monto</div>
-            <div>Cantidad</div>
+            <div>Tickets</div>
             <div>Estado y Números</div>
             <div className="text-right pr-2">Acciones</div>
           </div>
@@ -324,7 +323,7 @@ export const PurchasesView: React.FC = () => {
             const raffle = raffles.find(r => r.id === purchase.raffleId);
             const tier = raffle?.priceTiers.find(t => t.id === purchase.priceTierId);
             return (
-              <div key={purchase.id} className="grid grid-cols-[1.2fr_1.2fr_0.8fr_0.8fr_1.5fr_0.5fr] gap-2 border-b px-4 py-3 items-center text-sm bg-white hover:bg-gray-50 transition-all">
+              <div key={purchase.id} className="grid grid-cols-[1.3fr_1.3fr_0.8fr_0.8fr_1.5fr] gap-2 border-b px-4 py-3 items-center text-sm bg-white hover:bg-gray-50 transition-all">
                 {/* Columna 1: Comprador */}
                 <div>
                   <div className="font-semibold text-gray-900">{purchase.fullName}</div>
@@ -343,17 +342,16 @@ export const PurchasesView: React.FC = () => {
                   {purchase.paymentMethod === 'mercadopago' && (
                     <div className="text-xs text-gray-500">Preference ID: {purchase.preferenceId || 'N/A'}</div>
                   )}
-                  <div className="text-xs text-gray-500">Método: {purchase.paymentMethod === 'mercadopago' ? 'MercadoPago' : purchase.paymentMethod === 'bank_transfer' ? 'Transferencia' : purchase.paymentMethod === 'cash' ? 'Efectivo' : 'N/A'}</div>
+                  <div className="text-xs text-gray-500">Método:<b> {purchase.paymentMethod === 'mercadopago' ? 'MercadoPago' : purchase.paymentMethod === 'bank_transfer' ? 'Transferencia' : purchase.paymentMethod === 'cash' ? 'Efectivo' : 'N/A'}</b></div>
                 </div>
-                {/* Columna 3: Monto */}
+                {/* Columna 3: Tickets */}
                 <div>
-                  <div className="font-semibold text-green-700">${purchase.amount?.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</div>
+                  <div className="font-semibold text-blue-900">{purchase.ticketCount} Números</div>
+                  <div className="font-semibold text-green-700">
+                    ${purchase.amount?.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                  </div>
                 </div>
-                {/* Columna 4: Cantidad */}
-                <div>
-                  <div className="font-semibold text-blue-900">{purchase.ticketCount}</div>
-                </div>
-                {/* Columna 3: Estado y Números */}
+                {/* Columna 4: Estado y Números */}
                 <div>
                   <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-1 ${purchase.status === 'paid'
                     ? 'bg-green-100 text-green-800'

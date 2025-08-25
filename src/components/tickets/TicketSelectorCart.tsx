@@ -59,7 +59,7 @@ export const TicketSelectorCart: React.FC<TicketSelectorCartProps> & { SummaryPr
           {raffle && raffle.priceTiers.map((tier) => (
             <div key={tier.id} className="flex flex-col items-center border rounded-lg px-4 py-2 bg-white shadow-sm mr-2">
               <span className="text-base font-semibold text-gray-900">{tier.ticketCount} números</span>
-              <span className="text-green-600 text-lg font-bold">${tier.amount}</span>
+              <span className="text-green-600 text-lg font-bold">${tier.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
               <span className="text-xs text-gray-500">${(tier.amount / tier.ticketCount).toLocaleString('es-AR', { minimumFractionDigits: 2 })} c/u</span>
             </div>
           ))}
