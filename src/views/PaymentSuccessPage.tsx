@@ -63,6 +63,7 @@ export const PaymentSuccessPage: React.FC = () => {
           if (paymentParams.preference_id) {
             await purchaseService.updatePurchasePreferenceId(purchaseId, paymentParams.preference_id);
           }
+          
         } else {
           setError('El pago no fue aprobado o no se pudo verificar.');
         }

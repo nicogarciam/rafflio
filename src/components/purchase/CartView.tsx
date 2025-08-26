@@ -58,14 +58,12 @@ export const CartView: React.FC = () => {
   const theTier = raffle && raffle.priceTiers.find(t => t.ticketCount === selectedNumbers.length);
   // Si la cantidad de seleccionados no coincide con ningún tier, es custom
   const isCustom = raffle && !theTier;
-  console.log('isCustom:', isCustom, 'theTier:', theTier);
   const customTier = raffle ? {
     id: isCustom ? 'custom' : (theTier ? theTier.id : 'custom'),
     amount: montoTotal,
     ticketCount: selectedNumbers.length,
     raffleId: raffle.id
   } : null;
-  console.log('customTier:', customTier);
   if (!raffle) return <div>Selecciona una rifa para comenzar.</div>;
 
   return (

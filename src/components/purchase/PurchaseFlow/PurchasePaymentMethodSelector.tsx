@@ -10,9 +10,10 @@ interface PurchasePaymentMethodSelectorProps {
     onNext: () => void;
     onBack: () => void;
     selectedTier?: PriceTier | null;
+    loading?: boolean;
 }
 
-export const PurchasePaymentMethodSelector: React.FC<PurchasePaymentMethodSelectorProps> = ({ paymentMethod, onSelect, onNext, onBack, selectedTier }) => {
+export const PurchasePaymentMethodSelector: React.FC<PurchasePaymentMethodSelectorProps> = ({ paymentMethod, onSelect, onNext, onBack, selectedTier, loading }) => {
     return (
         <div className="space-y-4">
             <div className="text-center">
@@ -69,11 +70,11 @@ export const PurchasePaymentMethodSelector: React.FC<PurchasePaymentMethodSelect
                 </button>
                 <button
                     type="button"
-                    className={`flex-1 rounded py-2 text-white text-xs md:text-base ${!paymentMethod ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
-                    disabled={!paymentMethod}
+                    className={`flex-1 rounded py-2 text-white text-xs md:text-base ${(!paymentMethod || loading) ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                    disabled={!paymentMethod || loading}
                     onClick={onNext}
                 >
-                    Pagar
+                    {loading ? 'Procesando...' : 'Pagar'}
                 </button>
             </div>
         </div>

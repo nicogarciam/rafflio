@@ -10,6 +10,7 @@ import { PaymentMethod, PurchasePaymentMethodSelector } from './PurchaseFlow/Pur
 import { PurchasePaymentStep } from './PurchaseFlow/PurchasePaymentStep';
 import { PurchaseTierSelector } from './PurchaseFlow/PurchaseTierSelector';
 import { PurchaseUserForm } from './PurchaseFlow/PurchaseUserForm';
+import { sendPurchaseLinkEmail } from '../../services/email.service';
 
 
 interface PurchaseFlowProps {
@@ -67,18 +68,6 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
       }
     }
   }, []);
-
-  async function sendPurchaseLinkEmail(to: string, purchaseId: string) {
-    try {
-      await fetch('/api/send-purchase-link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, purchaseId }),
-      });
-    } catch (e) {
-      console.error('No se pudo enviar el email con el enlace de compra', e);
-    }
-  }
 
   // Paso 1: Selección de paquete
   const handleTierSelect = (tier: PriceTier) => {
@@ -142,9 +131,9 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
         const preference = await mercadoPagoService.createPaymentPreference(paymentData, purchase.id);
         setPreferenceId(preference.id);
         await updatePurchasePreferenceId(purchase.id, preference.id);
-        await sendPurchaseLinkEmail(purchase.email, purchase.id);
         window.open(preference.init_point, '_blank', 'noopener,noreferrer');
       }
+      await sendPurchaseLinkEmail(purchase.email, purchase.id);
       setLoading(false);
       setStep(4);
     } catch (err: any) {
@@ -210,6 +199,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
           onNext={handleCreatePurchase}
           onBack={handlePaymentMethodBack}
           selectedTier={selectedTier}
+          loading={loading}
         />
       )}
       {step === 4 && paymentMethod && (

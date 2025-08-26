@@ -252,7 +252,7 @@ app.post('/api/send-purchase-link', async (req: any, res: any) => {
     // Obtener datos de la compra, rifa y premios desde Supabase
     const { data: purchase, error: purchaseError } = await supabase
       .from('purchases')
-      .select('*')
+      .select('*, tickets(*)')
       .eq('id', purchaseId)
       .single();
     if (purchaseError || !purchase) {
@@ -286,18 +286,29 @@ app.post('/api/send-purchase-link', async (req: any, res: any) => {
       ? raffle.prizes.map((p: any, i: number) => `<li><strong>${i + 1}°:</strong> ${p.name} - ${p.description}</li>`).join('')
       : '';
 
+    // Validar si ya tiene los números seleccionados
+    let numerosSeleccionadosHtml = '';
+    if (purchase.tickets && Array.isArray(purchase.tickets) && purchase.tickets.length === purchase.ticket_count) {
+      const numeros = purchase.tickets.map((t: any) => t.number).sort((a: number, b: number) => a - b);
+      numerosSeleccionadosHtml = `<p><strong>Números seleccionados:</strong> ${numeros.join(', ')}</p>`;
+    }
+
+    const seleccionHtml = numerosSeleccionadosHtml
+      ? `<h3>¡Ya tienes tus números asignados!</h3>${numerosSeleccionadosHtml}
+      <p>Puedes ver tu compra haciendo click en el siguiente enlace:</p><a href="${url}">VER COMPRA</a>`
+      : `<p>Puedes seleccionar tus números de la rifa en el siguiente enlace:</p><a href="${url}">SELECCIONAR NÚMEROS</a>`;
+
     await transporter.sendMail({
       from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
       to,
-      subject: `¡Gracias por tu compra en la rifa "${raffle.title}"! Selecciona tus números`,
+      subject: `¡Gracias por tu compra en la rifa "${raffle.title}"!`,
       html: `
         <h2>¡Gracias por tu compra en "${raffle.title}"!</h2>
         <p><strong>Descripción:</strong> ${raffle.description}</p>
         <p><strong>Premios:</strong></p>
         <ul>${premiosHtml}</ul>
-        <p><strong>Cantidad de números a seleccionar:</strong> ${tier?.ticket_count || 'N/A'}</p>
-        <p>Puedes seleccionar tus números de la rifa en el siguiente enlace:</p>
-        <a href="${url}">Seleccionar Números</a>
+        <p><strong>Cantidad de números a seleccionar:</strong> ${purchase?.ticket_count}</p>
+        ${seleccionHtml}
         <p>¡Mucha suerte!</p>
       `,
     });
