@@ -13,8 +13,6 @@ import { Purchase } from '../types';
 
 export const PurchasesView: React.FC = () => {
 
-
-
   const {
     purchases,
     raffles,

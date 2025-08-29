@@ -37,6 +37,7 @@ interface RaffleContextType {
   deleteRaffle: (raffleId: string) => Promise<boolean>;
   refreshPurchases: (page?: number, pageSize?: number, filters?: any) => Promise<void>;
   getPurchaseById: (purchaseId: string) => Promise<Purchase | null>;
+  getPurchasesByRaffleId: (raffleId: string) => Promise<Purchase[]>;
 }
 
 const RaffleContext = createContext<RaffleContextType | undefined>(undefined);
@@ -269,6 +270,17 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const getPurchasesByRaffleId = async (raffleId: string) => {
+    try {
+      const { purchases, total } = await purchaseService.getPurchases(1, 1000, { raffleId });
+      return purchases;
+    } catch (err) {
+      console.error('Error getting purchases by raffle ID:', err);
+      setError(err instanceof Error ? err.message : 'Error al obtener las compras por ID de rifa');
+      throw err;
+    }
+  };
+
   return (
     <RaffleContext.Provider value={{
       raffles,
@@ -293,7 +305,8 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       refreshRaffles,
       refreshPurchases,
       getPurchaseById,
-      deleteRaffle
+      deleteRaffle,
+      getPurchasesByRaffleId,
     }}>
       {children}
     </RaffleContext.Provider>

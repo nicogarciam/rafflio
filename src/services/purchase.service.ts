@@ -11,6 +11,7 @@ export type CreatePurchaseData = Omit<
 };
 
 class PurchaseService {
+    
     private mockPurchases: Purchase[] = [];
 
 

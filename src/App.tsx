@@ -22,6 +22,7 @@ import { PaymentSuccessPage } from './views/PaymentSuccessPage';
 import PurchasesView from './views/PurchasesView';
 import RaffleDetailView from './views/RaffleDetailView';
 import RafflesView from './views/RafflesView';
+import AdminRaffleDetailView from './views/AdminRaffleDetailView';
 
 const AppContent: React.FC = () => {
   useAuth();
@@ -80,6 +81,11 @@ const AppContent: React.FC = () => {
           <Route path="/admin/raffles/edit/:id" element={
             <RequireAuth>
               <EditRaffleView />
+            </RequireAuth>
+          } />
+          <Route path="/admin/raffles/detail/:id" element={
+            <RequireAuth>
+              <AdminRaffleDetailView />
             </RequireAuth>
           } />
           <Route path="/admin/users" element={
