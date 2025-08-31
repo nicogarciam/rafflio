@@ -16,7 +16,7 @@ export const PurchaseTierSelector: React.FC<PurchaseTierSelectorProps> = ({ raff
           Selecciona tu paquete
         </h3>
         <p className="text-gray-600">
-          Elige la cantidad de números que deseas comprar para {raffle.title}
+          Elige con cuantos números que deseas contribuir a {raffle.title}
         </p>
       </div>
 
@@ -45,7 +45,7 @@ export const PurchaseTierSelector: React.FC<PurchaseTierSelectorProps> = ({ raff
                 <p className="text-2xl font-bold text-green-600">
                   ${tier.amount}
                 </p>
-                <p className="text-sm text-gray-500">Precio total</p>
+                <p className="text-sm text-gray-500">Contribución total</p>
               </div>
             </div>
           </div>

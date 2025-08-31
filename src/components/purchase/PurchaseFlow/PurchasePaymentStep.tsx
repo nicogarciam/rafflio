@@ -43,7 +43,7 @@ export const PurchasePaymentStep: React.FC<PurchasePaymentStepProps> = ({
                         </div>
                         <div>
                             <h3 className="text-xl font-semibold text-blue-900 mb-2">
-                                Procesando tu pago...
+                                Procesando tu contribución...
                             </h3>
                             <p className="text-gray-600">
                                 Estado actual: <span className="font-mono">{paymentStatus || 'pending'}</span>
@@ -129,10 +129,10 @@ export const PurchasePaymentStep: React.FC<PurchasePaymentStepProps> = ({
             </div>
             <div>
                 <h3 className="text-xl font-semibold text-green-900 mb-2">
-                    ¡Compra registrada!
+                    ¡Contribución registrada!
                 </h3>
                 <p className="text-gray-600">
-                    Indique al vendedor que actualice su compra tras el pago. Recibirá un email con el enlace para seleccionar sus números.
+                    Indique al responsable que actualice tu contribución tras el pago. Recibirá un email con el enlace para seleccionar sus números.
                 </p>
             </div>
             <div className="flex space-x-4 pt-4">

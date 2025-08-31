@@ -52,7 +52,10 @@ export const BankTransferInfo: React.FC<BankTransferInfoProps> = ({
                 {account.whatsapp && (
                   <a
                     href={`https://wa.me/${account.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                      `Acabo de realizar una compra de ${selectedTier?.ticketCount} números por un monto de $${selectedTier?.amount?.toLocaleString('es-AR', { minimumFractionDigits: 2 })} para la rifa ${raffleTitle}. A la brevedad enviaré el comprobante de transferencia.`
+                      `Acabo de realizar una contribución de $${selectedTier?.amount?.toLocaleString('es-AR', { minimumFractionDigits: 2 })} 
+                      equivalente a ${selectedTier?.ticketCount} números
+                      para el bono contribución ${raffleTitle}. 
+                      A la brevedad enviaré el comprobante de transferencia.`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"

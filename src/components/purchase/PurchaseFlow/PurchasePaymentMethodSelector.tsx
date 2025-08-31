@@ -20,7 +20,7 @@ export const PurchasePaymentMethodSelector: React.FC<PurchasePaymentMethodSelect
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     Selecciona el método de pago
                 </h3>
-                <p className="text-gray-600">Elige cómo deseas abonar tu compra</p>
+                <p className="text-gray-600">Elige cómo deseas abonar tu contribución</p>
                 {selectedTier && (
                     <div className="mt-3 inline-flex items-center gap-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 justify-center text-sm">
                         <div className="flex flex-col items-center">
@@ -74,7 +74,7 @@ export const PurchasePaymentMethodSelector: React.FC<PurchasePaymentMethodSelect
                     disabled={!paymentMethod || loading}
                     onClick={onNext}
                 >
-                    {loading ? 'Procesando...' : 'Pagar'}
+                    {loading ? 'Procesando...' : 'Contribuir'}
                 </button>
             </div>
         </div>

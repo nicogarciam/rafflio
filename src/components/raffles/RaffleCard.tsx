@@ -81,7 +81,7 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
             <div className="flex items-center space-x-2">
               <Users className="w-5 h-5 text-blue-600" />
               <div>
-                <p className="text-xs text-gray-600">Números Vendidos</p>
+                <p className="text-xs text-gray-600">Números Seleccionados</p>
                 <p className="font-semibold text-blue-900">{raffle.soldTickets.toLocaleString()}</p>
               </div>
             </div>
@@ -99,7 +99,7 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
 
         <div>
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-gray-600">Progreso de ventas</span>
+            <span className="text-sm text-gray-600">Progreso de Contribuciones</span>
             <span className="text-sm font-medium text-gray-900">{soldPercentage.toFixed(1)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -138,7 +138,7 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
         <div className="space-y-3">
           <h4 className="font-semibold text-gray-900 flex items-center space-x-2">
             <DollarSign className="w-4 h-4" />
-            <span>Opciones de Compra</span>
+            <span>Opciones de Contribución</span>
           </h4>
           <div className="flex flex-wrap gap-2">
             {raffle.priceTiers.map((tier) => (
@@ -158,14 +158,6 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
         </div>
 
         <div className="flex flex-col gap-2">
-          {/* <Button
-            onClick={() => onBuyTickets(raffle)}
-            className="w-full"
-            size="lg"
-            disabled={!raffle.isActive}
-          >
-            {raffle.isActive ? 'Comprar Números' : 'Rifa No Disponible'}
-          </Button> */}
           <Button
             onClick={() => window.location.assign(`/cart?raffleId=${raffle.id}`)}
             className="w-full"
@@ -173,13 +165,13 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
             variant="outline"
             disabled={!raffle.isActive}
           >
-            {raffle.isActive ? 'Comprar números 🛒' : 'Rifa No Disponible'}
+            {raffle.isActive ? 'Contribuir con números 🛒' : 'Bono No Disponible'}
           </Button>
           <Link
             to={`/raffle/view/${raffle.id}`}
             className="w-full text-center text-blue-600 hover:underline text-sm mt-1"
           >
-            Ver detalle de la rifa
+            Ver detalle del Bono Contribución
           </Link>
         </div>
       </CardContent>

@@ -15,18 +15,18 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
-            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}> 
+            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
               <Ticket className="w-8 h-8 text-blue-600" />
               <h1 className="text-xl font-bold text-gray-900">Rafflio</h1>
             </div>
             {/* Desktop menu */}
             <div className="hidden md:flex space-x-4">
-              <Link to="/" className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900">Rifas Activas</Link>
+              <Link to="/" className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900">Bonos Activos</Link>
               {user?.role === 'ADMIN' && <>
                 <Link to="/admin" className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900"><Settings className="w-4 h-4 inline mr-1" />Administración</Link>
-                <Link to="/admin/raffles" className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-blue-600 hover:text-blue-900"><Ticket className="w-4 h-4 inline mr-1" />Rifas</Link>
+                <Link to="/admin/raffles" className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-blue-600 hover:text-blue-900"><Ticket className="w-4 h-4 inline mr-1" />Bonos Contribución</Link>
                 <Link to="/admin/users" className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900"><Users className="w-4 h-4 inline mr-1" />Gestión de Usuarios</Link>
-                <Link to="/purchases" className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900"><Users className="w-4 h-4 inline mr-1" />Compras</Link>
+                <Link to="/purchases" className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:text-gray-900"><Users className="w-4 h-4 inline mr-1" />Contribuciones</Link>
               </>}
             </div>
           </div>
@@ -56,12 +56,12 @@ export const Navbar: React.FC = () => {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden mt-2 space-y-2">
-            <Link to="/" className="block px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900" onClick={() => setMenuOpen(false)}>Rifas Activas</Link>
+            <Link to="/" className="block px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900" onClick={() => setMenuOpen(false)}>Bonos Activos</Link>
             {user?.role === 'ADMIN' && <>
               <Link to="/admin" className="block px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900" onClick={() => setMenuOpen(false)}><Settings className="w-4 h-4 inline mr-1" />Administración</Link>
-              <Link to="/admin/raffles" className="block px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:text-blue-900" onClick={() => setMenuOpen(false)}><Ticket className="w-4 h-4 inline mr-1" />Rifas</Link>
+              <Link to="/admin/raffles" className="block px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:text-blue-900" onClick={() => setMenuOpen(false)}><Ticket className="w-4 h-4 inline mr-1" />Bonos Contribución</Link>
               <Link to="/admin/users" className="block px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900" onClick={() => setMenuOpen(false)}><Users className="w-4 h-4 inline mr-1" />Gestión de Usuarios</Link>
-              <Link to="/purchases" className="block px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900" onClick={() => setMenuOpen(false)}><Users className="w-4 h-4 inline mr-1" />Compras</Link>
+              <Link to="/purchases" className="block px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900" onClick={() => setMenuOpen(false)}><Users className="w-4 h-4 inline mr-1" />Contribuciones</Link>
             </>}
             <div className="border-t border-gray-200 my-2" />
             {user ? (

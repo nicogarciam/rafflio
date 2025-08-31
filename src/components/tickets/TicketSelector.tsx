@@ -108,24 +108,24 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
       setIsVerifying(true);
       setPaymentError(null);
       try {
-        setValidationType('Consultando compra...');
-        setValidationStep('Buscando la compra en la base de datos');
+        setValidationType('Consultando contribución...');
+        setValidationStep('Buscando la contribución en la base de datos');
        /*  console.log(`🔍 Consultando compra con ID: ${purchaseId}`); */
         const p = await getPurchaseById(purchaseId);
         await new Promise(resolve => setTimeout(resolve, 100));
         if (!p) {
-          setPaymentError('No se encontró la compra solicitada');
+          setPaymentError('No se encontró la contribución solicitada');
           stopPolling = true;
           setIsVerifying(false);
           return;
         }
         setPurchase(p);
-        setValidationType('Compra encontrada');
-        setValidationStep('¡La compra fue encontrada correctamente!');
+        setValidationType('Contribución encontrada');
+        setValidationStep('¡La contribución fue encontrada correctamente!');
         if ( p.ticketCount) {
           setMaxSelections(p.ticketCount);
         }
-        console.log('Detalles de la compra:', p);
+        console.log('Detalles de la contribución:', p);
         if (p.status === 'paid' && p.tickets && p.tickets.length === p.ticketCount) {
           p.status = 'confirmed'; // Simular que ya está confirmada si tiene todos los tickets
           updatePurchaseStatus(p.id, 'confirmed');
@@ -136,7 +136,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         if (p.status === 'confirmed') {
           setSelectedNumbers(p.tickets?.map(t => t.number) || []);
           setValidationType('Números ya seleccionados');
-          setValidationStep('Ya has confirmado tus números para esta compra.');
+          setValidationStep('Ya has confirmado tus números para esta contribución.');
           setIsVerifying(false);
           stopPolling = true;
           return;
@@ -247,7 +247,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         try {
           await updatePurchaseStatus(purchaseId, 'confirmed');
         } catch (err) {
-          throw new Error('No se pudo actualizar el estado de la compra en la base de datos');
+          throw new Error('No se pudo actualizar el estado de la contribución en la base de datos');
         }
 
         const updatedPurchase = await getPurchaseById(purchaseId);
@@ -356,7 +356,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
             Números ya seleccionados
           </h3>
           <p className="text-gray-600 mb-4">
-            Ya has confirmado tus números para esta compra. Si tienes dudas, revisa tu email ({purchase.email}).
+            Ya has confirmado tus números para esta contribución. Si tienes dudas, revisa tu email ({purchase.email}).
           </p>
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-w-md mx-auto">
             <p className="text-sm text-green-800 mb-2">
@@ -428,7 +428,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-800">
-            <strong>Confirmación enviada:</strong> Revisa tu email ({purchase?.email ?? ''}) para ver todos los detalles de tu compra.
+            <strong>Confirmación enviada:</strong> Revisa tu email ({purchase?.email ?? ''}) para ver todos los detalles de tu contribución.
           </p>
         </div>
 
@@ -448,7 +448,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         </div>
         <h2 className="text-2xl font-bold text-green-900">¡Pago Exitoso!</h2>
         <p className="text-gray-700 text-lg max-w-md mx-auto">
-          Tu pago fue confirmado correctamente. Ahora puedes seleccionar tus números de la suerte para participar en la rifa.
+          Tu pago fue confirmado correctamente. Ahora puedes seleccionar tus números de la suerte para participar en el sorteo.
         </p>
         <Button
           className="w-full max-w-xs mx-auto"
@@ -486,15 +486,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
           <Button className="w-full max-w-xs mx-auto" onClick={onClose}>
             Cerrar
           </Button>
-          {isDev && (
-            <Button className="w-full max-w-xs mx-auto" variant="outline"
-              onClick={() => {
-                setShowSuccess(true);
-                setFailedPaymentValidation(false);
-              }}>
-              Continuar con la selección de números (DEV)
-            </Button>
-          )}
+          
         </div>
       </div>
     );
@@ -511,7 +503,7 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-gray-900">{raffle?.title}</p>
-                <p className="text-sm text-gray-600">Comprador: {purchase?.fullName}</p>
+                <p className="text-sm text-gray-600">Contribuyente: {purchase?.fullName}</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-600">Selecciona exactamente:</p>

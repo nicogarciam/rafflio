@@ -64,7 +64,7 @@ export const CartView: React.FC = () => {
     ticketCount: selectedNumbers.length,
     raffleId: raffle.id
   } : null;
-  if (!raffle) return <div>Selecciona una rifa para comenzar.</div>;
+  if (!raffle) return <div>Selecciona un Bono Contribución para comenzar.</div>;
 
   return (
     <div className="relative min-h-[80vh]">
@@ -88,7 +88,7 @@ export const CartView: React.FC = () => {
         )}
         <div className="flex gap-2">
           <Button variant="outline" onClick={clearCart} disabled={selectedNumbers.length === 0} className="flex-1">Vaciar</Button>
-          <Button disabled={selectedNumbers.length === 0} onClick={() => setShowModal(true)} className="flex-1">Ir al pago</Button>
+          <Button disabled={selectedNumbers.length === 0} onClick={() => setShowModal(true)} className="flex-1">Ir al pago (contribución)</Button>
         </div>
       </div>
       {/* Modal de pago reutilizando PurchaseFlow */}

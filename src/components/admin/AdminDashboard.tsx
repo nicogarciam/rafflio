@@ -51,7 +51,7 @@ export const AdminDashboard: React.FC = () => {
               <Gift className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Rifas Totales</p>
+              <p className="text-sm font-medium text-gray-600">Bonos Contribución Totales</p>
               <p className="text-2xl font-bold text-gray-900">{totalRaffles}</p>
               <p className="text-xs text-green-600">{activeRaffles} activas</p>
             </div>
@@ -79,7 +79,7 @@ export const AdminDashboard: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Ventas</p>
               <p className="text-2xl font-bold text-gray-900">{totalSales}</p>
-              <p className="text-xs text-green-600">Compras exitosas</p>
+              <p className="text-xs text-green-600">Contribuciones exitosas</p>
             </div>
           </CardContent>
         </Card>
@@ -104,7 +104,7 @@ export const AdminDashboard: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <BarChart3 className="w-5 h-5" />
-              <span>Rifas Activas</span>
+              <span>Bonos Contribución Activos</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -146,14 +146,14 @@ export const AdminDashboard: React.FC = () => {
               {raffles.filter(r => r.isActive).length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <Gift className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No hay rifas activas</p>
+                  <p>No hay Bonos activos</p>
                   <Button
                     onClick={() => navigate('/admin/raffles/new')}
                     variant="outline"
                     size="sm"
                     className="mt-2"
                   >
-                    Crear primera rifa
+                    Crear Bono Contribución
                   </Button>
                 </div>
               )}
@@ -166,7 +166,7 @@ export const AdminDashboard: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Users className="w-5 h-5" />
-              <span>Compras Recientes</span>
+              <span>Contribuciones Recientes</span>
             </CardTitle>
           </CardHeader>
           <CardContent>

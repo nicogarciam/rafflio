@@ -54,7 +54,7 @@ export const TicketSelectorCart: React.FC<TicketSelectorCartProps> & { SummaryPr
         )}
         <div className="flex items-center gap-3 flex-wrap">
           <span className="font-semibold text-lg text-gray-900 flex items-center">
-            <span className="mr-2">💲</span> Opciones de Compra
+            <span className="mr-2">💲</span> Opciones de Contribución
           </span>
           {raffle && raffle.priceTiers.map((tier) => (
             <div key={tier.id} className="flex flex-col items-center border rounded-lg px-4 py-2 bg-white shadow-sm mr-2">

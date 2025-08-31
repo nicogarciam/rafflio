@@ -65,7 +65,7 @@ const AdminRaffleDetail: React.FC<{
             </div>
 
             <div className="bg-white border rounded p-4">
-                <h3 className="font-semibold mb-2">Compras</h3>
+                <h3 className="font-semibold mb-2">Contribuciones</h3>
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-xs">
                         <thead>

@@ -263,17 +263,16 @@ app.post('/api/send-purchase-link', async (req: any, res: any) => {
     const raffleId = purchase.raffle_id || purchase.raffleId;
     if (!raffleId) {
       console.error('No se encontró raffle_id ni raffleId en la compra:', purchase);
-      throw new Error('No se pudo determinar la rifa asociada a la compra');
+      throw new Error('No se pudo determinar el bono asociado a la compra');
     }
-    console.log('Buscando rifa con id:', raffleId);
     const { data: raffle, error: raffleError } = await supabase
       .from('raffles')
       .select('*, prizes(*), price_tiers(*)')
       .eq('id', raffleId)
       .single();
     if (raffleError || !raffle) {
-      console.error('Error al obtener la rifa:', raffleError, 'ID:', raffleId);
-      throw new Error('No se pudo obtener la rifa');
+      console.error('Error al obtener el bono:', raffleError, 'ID:', raffleId);
+      throw new Error('No se pudo obtener el bono');
     }
 
     // Buscar el tier de precio seleccionado
@@ -295,15 +294,15 @@ app.post('/api/send-purchase-link', async (req: any, res: any) => {
 
     const seleccionHtml = numerosSeleccionadosHtml
       ? `<h3>¡Ya tienes tus números asignados!</h3>${numerosSeleccionadosHtml}
-      <p>Puedes ver tu compra haciendo click en el siguiente enlace:</p><a href="${url}">VER COMPRA</a>`
-      : `<p>Puedes seleccionar tus números de la rifa en el siguiente enlace:</p><a href="${url}">SELECCIONAR NÚMEROS</a>`;
+      <p>Puedes ver tu contribución haciendo click en el siguiente enlace:</p><a href="${url}">VER BONO</a>`
+      : `<p>Puedes seleccionar tus números en el siguiente enlace:</p><a href="${url}">SELECCIONAR NÚMEROS</a>`;
 
     await transporter.sendMail({
       from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
       to,
-      subject: `¡Gracias por tu compra en la rifa "${raffle.title}"!`,
+      subject: `¡Gracias por tu Contribución en "${raffle.title}"!`,
       html: `
-        <h2>¡Gracias por tu compra en "${raffle.title}"!</h2>
+        <h2>¡Gracias por tu Contribución en "${raffle.title}"!</h2>
         <p><strong>Descripción:</strong> ${raffle.description}</p>
         <p><strong>Premios:</strong></p>
         <ul>${premiosHtml}</ul>
@@ -334,14 +333,14 @@ app.post('/api/send-confirmation-email', async (req: any, res: any) => {
     await transporter.sendMail({
       from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
       to,
-      subject: 'Confirmación de Números y Premios - Rafflio',
+      subject: 'Confirmación de Números y Premios',
       html: `
         <h2>¡Números confirmados!</h2>
         <p>Gracias por participar. Estos son tus números seleccionados:</p>
         <p><strong>${numbersList}</strong></p>
-        <h3>Premios de la rifa:</h3>
+        <h3>Premios:</h3>
         <ul>${prizesHtml}</ul>
-        <p>Puedes ver tu compra en: <a href="${url}">VER COMPRA</a></p>
+        <p>Puedes ver tu contribución en: <a href="${url}">VER BONO</a></p>
         <p>¡Mucha suerte!</p>
       `,
     });

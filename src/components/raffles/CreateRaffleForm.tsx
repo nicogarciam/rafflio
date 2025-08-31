@@ -16,7 +16,7 @@ export const CreateRaffleForm: React.FC = () => {
       await addRaffle({ ...data, isActive: true });
       setSuccessModal(true);
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Ocurrió un error al crear la rifa.');
+      setErrorMsg(err?.message || 'Ocurrió un error al crear el bono contribución.');
     }
   };
 
@@ -27,15 +27,15 @@ export const CreateRaffleForm: React.FC = () => {
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{errorMsg}</div>
       )}
       <RaffleForm onSubmit={handleSubmit} />
-      <Modal isOpen={successModal} onClose={() => { setSuccessModal(false); navigate('/admin/raffles'); }} title="¡Rifa creada!" size="sm">
+      <Modal isOpen={successModal} onClose={() => { setSuccessModal(false); navigate('/admin/raffles'); }} title="¡Bono Contribución creado!" size="sm">
         <div className="py-4 text-center">
           <div className="mb-4 text-3xl text-green-600">🎉</div>
-          <div className="text-lg font-medium mb-2">La rifa se creó correctamente.</div>
+          <div className="text-lg font-medium mb-2">El bono contribución se creó correctamente.</div>
           <button
             className="mt-2 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
             onClick={() => { setSuccessModal(false); navigate('/admin/raffles'); }}
           >
-            Ir a la lista de rifas
+            Ir a la lista de bonos contribución
           </button>
         </div>
       </Modal>

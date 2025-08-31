@@ -174,7 +174,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
   });
 
   return (
-    <Modal isOpen={isOpen} onClose={handlePaymentStepComplete} title="Comprar Números" size="lg">
+    <Modal isOpen={isOpen} onClose={handlePaymentStepComplete} title="Contribuir" size="lg">
       <div className="cho-container" style={{ marginTop: 16 }}></div>
       {step === 1 && (
         <PurchaseTierSelector
