@@ -39,7 +39,7 @@ export const AdminDashboard: React.FC = () => {
 
         <Button onClick={() => navigate('/admin/raffles/new')}>
           <Plus className="w-4 h-4 mr-2" />
-          Nueva Rifa
+          Nuevo Bono Contribución
         </Button>
       </div>
 

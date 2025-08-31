@@ -1,4 +1,4 @@
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Dice5, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
@@ -83,6 +83,10 @@ export const AdminRafflesView: React.FC = () => {
         >
           Buscar
         </Button>
+        <Button onClick={() => navigate('/admin/raffles/new')}>
+          <Plus className="w-4 h-4 mr-2" />
+          Nuevo Bono Contribución
+        </Button>
       </div>
       {/* Responsive table/cards */}
       <div className="overflow-x-auto">
@@ -90,7 +94,7 @@ export const AdminRafflesView: React.FC = () => {
         <div className="hidden md:block min-w-[900px]">
           {/* Encabezado */}
           <div className="grid grid-cols-[2fr_1fr_0.5fr_0.5fr_1fr_1fr_0.5fr] gap-1 bg-gray-100 rounded-t-lg px-2 py-2 text-xs font-semibold text-gray-700">
-            <div>Título</div>
+            <div>Bono Contribución</div>
             <div>Fecha sorteo</div>
             <div>Tickets</div>
             <div>Estado</div>
@@ -146,11 +150,11 @@ export const AdminRafflesView: React.FC = () => {
                   <Pencil className="w-5 h-5 text-indigo-600" />
                 </button>
                 <button
-                  title="Admin Detalle"
+                  title="Administrar Detalle"
                   className="p-1 rounded hover:bg-green-100"
                   onClick={() => handleAdminDetail(raffle.id)}
                 >
-                  <span className="w-5 h-5 text-green-600 font-bold">ADM</span>
+                  <Dice5 className="w-5 h-5 text-green-600" />
                 </button>
                 <a
                   href={`/raffle/view/${raffle.id}`}
@@ -231,10 +235,10 @@ export const AdminRafflesView: React.FC = () => {
           {raffles.length === 0 && (
             <div className="text-center py-16">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                No hay rifas registradas
+                No hay Bonos de Contribución registrados
               </h3>
               <p className="text-gray-600">
-                Las rifas aparecerán aquí cuando sean creadas.
+                Los Bonos de Contribución aparecerán aquí cuando sean creados.
               </p>
             </div>
           )}
@@ -274,7 +278,7 @@ export const AdminRafflesView: React.FC = () => {
       <Modal isOpen={!!deleteModal} onClose={() => setDeleteModal(null)} title="Eliminar rifa" size="sm">
         <div className="py-4 text-center">
           <div className="mb-4 text-3xl text-red-600">🗑️</div>
-          <div className="text-lg font-medium mb-2">¿Seguro que deseas eliminar la rifa "{deleteModal?.title}"?</div>
+          <div className="text-lg font-medium mb-2">¿Seguro que deseas eliminar el bono de contribución "{deleteModal?.title}"?</div>
           <div className="text-sm text-gray-600 mb-4">Esta acción eliminará todas las compras, premios, precios y números asociados.</div>
           <div className="flex gap-2 justify-center">
             <Button variant="outline" onClick={() => setDeleteModal(null)}>Cancelar</Button>
@@ -284,7 +288,7 @@ export const AdminRafflesView: React.FC = () => {
                 if (deleteModal) {
                   const ok = await deleteRaffle(deleteModal.id);
                   setDeleteModal(null);
-                  setFeedback(ok ? 'Rifa eliminada correctamente.' : 'Error al eliminar la rifa.');
+                  setFeedback(ok ? 'Bono de contribución eliminado correctamente.' : 'Error al eliminar el bono de contribución.');
                 }
               }}
             >
@@ -295,7 +299,7 @@ export const AdminRafflesView: React.FC = () => {
       </Modal>
       <Modal isOpen={!!feedback} onClose={() => setFeedback(null)} title="Resultado" size="sm">
         <div className="py-4 text-center">
-          <div className={`mb-4 text-3xl ${feedback === 'Rifa eliminada correctamente.' ? 'text-green-600' : 'text-red-600'}`}>{feedback === 'Rifa eliminada correctamente.' ? '✔️' : '❌'}</div>
+          <div className={`mb-4 text-3xl ${feedback === 'Bono de contribución eliminado correctamente.' ? 'text-green-600' : 'text-red-600'}`}>{feedback === 'Bono de contribución eliminado correctamente.' ? '✔️' : '❌'}</div>
           <div className="text-lg font-medium mb-2">{feedback}</div>
           <Button className="mt-2 w-full" onClick={() => setFeedback(null)}>
             Cerrar
