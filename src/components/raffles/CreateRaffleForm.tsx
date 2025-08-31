@@ -22,7 +22,7 @@ export const CreateRaffleForm: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">Crear Nueva Rifa</h1>
+      <h2 className="text-3xl font-bold mb-8 flex items-center gap-2">Crear Nuevo Bono de Contribución</h2>
       {errorMsg && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{errorMsg}</div>
       )}

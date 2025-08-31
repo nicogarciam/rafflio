@@ -161,8 +161,8 @@ export const RaffleDetail: React.FC<RaffleDetailProps> = ({ onBuyTickets }) => {
                   <p className="text-sm text-gray-600">¡Mejor oferta!</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-green-600">${tier.amount}</p>
-                  <p className="text-xs text-gray-500">${(tier.amount / tier.ticketCount).toFixed(2)} c/u</p>
+                  <p className="font-bold text-green-600">${tier.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs text-gray-500">${(tier.amount / tier.ticketCount).toLocaleString('es-AR', { minimumFractionDigits: 2 })} c/u</p>
                 </div>
               </button>
             ))}

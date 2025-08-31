@@ -34,7 +34,7 @@ export const AdminDashboard: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
-          <p className="text-gray-600">Gestiona tus rifas y monitorea las ventas</p>
+          <p className="text-gray-600">Gestiona tus bonos de contribución y monitorea las contribuciones</p>
         </div>
 
         <Button onClick={() => navigate('/admin/raffles/new')}>
@@ -114,7 +114,15 @@ export const AdminDashboard: React.FC = () => {
                 return (
                   <div key={raffle.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900">{raffle.title}</h4>
+                      <h4 className="font-medium text-gray-900">
+                        <a
+                          href={`/raffle/view/${raffle.id}`}
+                          rel="noopener noreferrer"
+                          title="Ver detalle"
+                          className="p-1 rounded hover:bg-blue-100"
+                        >
+                          {raffle.title}
+                        </a></h4>
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-600">
