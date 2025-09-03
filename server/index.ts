@@ -424,23 +424,66 @@ app.get('/api/test', async (req: Request, res: Response) => {
   res.json({ message: 'API is working!' });
 });
 
+// Health check básico para Railway (responde inmediatamente)
+app.get('/api/health', (req: Request, res: Response) => {
+  res.json({ 
+    status: 'healthy',
+    message: 'Server is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Endpoint de health check para monitorear SMTP
 app.get('/api/health/smtp', async (req: Request, res: Response) => {
   try {
-    const isConnected = await verifySMTPConnection();
+    // Health check rápido - solo verificar configuración básica
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    
+    // Verificar que las variables de entorno estén configuradas
+    if (!smtpUser || !smtpPass) {
+      return res.status(200).json({ 
+        status: 'unhealthy',
+        smtp: {
+          connected: false,
+          user: smtpUser ? 'configured' : 'not configured',
+          pass: smtpPass ? 'configured' : 'not configured',
+          timestamp: new Date().toISOString()
+        },
+        message: 'SMTP credentials not configured'
+      });
+    }
+
+    // Verificación rápida de conexión con timeout
+    const connectionPromise = verifySMTPConnection();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('SMTP verification timeout')), 10000)
+    );
+
+    const isConnected = await Promise.race([connectionPromise, timeoutPromise]);
+    
     res.json({ 
       status: isConnected ? 'healthy' : 'unhealthy',
       smtp: {
         connected: isConnected,
-        user: process.env.SMTP_USER ? 'configured' : 'not configured',
+        user: 'configured',
+        pass: 'configured',
         timestamp: new Date().toISOString()
-      }
+      },
+      message: isConnected ? 'SMTP connection verified' : 'SMTP connection failed'
     });
   } catch (error: any) {
-    res.status(500).json({ 
-      status: 'error',
+    // En caso de error, devolver unhealthy pero no error 500
+    res.status(200).json({ 
+      status: 'unhealthy',
+      smtp: {
+        connected: false,
+        user: process.env.SMTP_USER ? 'configured' : 'not configured',
+        pass: process.env.SMTP_USER ? 'configured' : 'not configured',
+        timestamp: new Date().toISOString()
+      },
       error: error.message,
-      timestamp: new Date().toISOString()
+      message: 'SMTP health check failed'
     });
   }
 });
