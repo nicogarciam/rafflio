@@ -276,15 +276,24 @@ const sendEmailWithRetry = async (mailOptions: any, maxRetries = 3) => {
     try {
       console.log(`📧 Intento ${attempt} de envío de email a: ${mailOptions.to}`);
       
-      // Verificar conexión antes de cada intento
-      const isConnected = await verifySMTPConnection();
-      if (!isConnected) {
-        throw new Error('Conexión SMTP no disponible');
+      // Intentar enviar directamente primero, solo verificar conexión si falla
+      try {
+        const result = await transporter.sendMail(mailOptions);
+        console.log(`✅ Email enviado exitosamente en intento ${attempt}`);
+        return result;
+      } catch (sendError: any) {
+        // Si falla el envío, verificar conexión y reintentar
+        console.log(`📡 Verificando conexión SMTP antes del reintento...`);
+        const isConnected = await verifySMTPConnection();
+        if (!isConnected) {
+          throw new Error('Conexión SMTP no disponible');
+        }
+        
+        // Reintentar envío después de verificar conexión
+        const result = await transporter.sendMail(mailOptions);
+        console.log(`✅ Email enviado exitosamente en intento ${attempt} después de verificar conexión`);
+        return result;
       }
-      
-      const result = await transporter.sendMail(mailOptions);
-      console.log(`✅ Email enviado exitosamente en intento ${attempt}`);
-      return result;
     } catch (error: any) {
       console.error(`❌ Error en intento ${attempt}:`, error.message);
       
@@ -300,14 +309,20 @@ const sendEmailWithRetry = async (mailOptions: any, maxRetries = 3) => {
   }
 };
 
-// Verificar conexión al iniciar el servidor
-verifySMTPConnection().then(isConnected => {
-  if (isConnected) {
-    console.log('🚀 Servidor iniciado con conexión SMTP verificada');
-  } else {
-    console.warn('⚠️ Servidor iniciado pero conexión SMTP no verificada');
+// Verificar conexión SMTP de manera asíncrona sin bloquear el inicio
+setTimeout(async () => {
+  try {
+    const isConnected = await verifySMTPConnection();
+    if (isConnected) {
+      console.log('🚀 Conexión SMTP verificada correctamente');
+    } else {
+      console.warn('⚠️ Conexión SMTP no disponible - se reintentará automáticamente');
+    }
+  } catch (error: any) {
+    console.warn('⚠️ Error inicial verificando SMTP:', error.message);
+    console.log('🔄 El servidor continuará funcionando y reintentará la conexión SMTP automáticamente');
   }
-});
+}, 5000); // Esperar 5 segundos después del inicio
 
 app.post('/api/send-purchase-link', async (req: any, res: any) => {
   const { to, purchaseId } = req.body;
@@ -429,8 +444,16 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ 
     status: 'healthy',
     message: 'Server is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    nodeVersion: process.version
   });
+});
+
+// Health check simple para Railway (solo verifica que el servidor responda)
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).send('OK');
 });
 
 // Endpoint de health check para monitorear SMTP
