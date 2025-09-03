@@ -482,8 +482,6 @@ app.post('/api/payment/webhook', async (req: Request, res: Response) => {
   }
 });
 
-
-
 httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend HTTPS + WebSocket listening on ${apiUrl}`);
 });
