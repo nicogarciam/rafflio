@@ -235,6 +235,8 @@ app.post('/api/payment/preference-by-ref', async (req: Request, res: Response) =
 // Configuración SMTP más robusta para Railway
 const transporter = nodemailer.createTransport({
   service: 'Gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -272,7 +274,9 @@ const verifySMTPConnection = async (maxRetries = 2) => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`🔍 Verificando conexión SMTP (intento ${attempt}/${maxRetries})...`);
-      
+      const user = process.env.SMTP_USER;
+      const pass = process.env.SMTP_PASS;
+      console.log('🔍USER AND PASS', user, pass);
       // Usar Promise.race para timeout más agresivo
       const verifyPromise = transporter.verify();
       const timeoutPromise = new Promise((_, reject) => 
