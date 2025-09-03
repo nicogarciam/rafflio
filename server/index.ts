@@ -242,7 +242,7 @@ const createGmailTransporter = () => {
   return nodemailer.createTransport({
     service: 'Gmail',
     host: 'smtp.gmail.com',
-    port: 465,
+    port: 587,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -296,7 +296,7 @@ const verifyGmailConnection = async (maxRetries = 2) => {
         setTimeout(() => reject(new Error('Gmail verification timeout')), 15000)
       );
       
-      await Promise.race([verifyPromise, timeoutPromise]);
+      await Promise.race([verifyPromise, timeoutPromise]).then(console.log).catch(console.log);
       console.log('✅ Conexión Gmail verificada correctamente');
       return true;
     } catch (error: any) {
