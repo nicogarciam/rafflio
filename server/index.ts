@@ -232,62 +232,151 @@ app.post('/api/payment/preference-by-ref', async (req: Request, res: Response) =
 });
 
 
-// Configuración SMTP más robusta para Railway
-const transporter = nodemailer.createTransport({
-  service: 'Gmail',
-  host: 'smtp.gmail.com',
-  port: 465,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  // Configuraciones optimizadas para Railway
-  pool: true,
-  maxConnections: 3, // Reducido para Railway
-  maxMessages: 50, // Reducido para Railway
-  rateLimit: 5, // Reducido para Railway
+// Configuración SMTP múltiple para Railway
+const createSMTPTransporters = () => {
+  const transporters = [];
   
-  // Timeouts más agresivos para Railway
-  connectionTimeout: 30000, // 30 segundos
-  greetingTimeout: 15000, // 15 segundos
-  socketTimeout: 30000, // 30 segundos
+  // 1. Gmail (configuración principal)
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    transporters.push({
+      name: 'Gmail',
+      transporter: nodemailer.createTransport({
+        service: 'Gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+        // Configuraciones optimizadas para Railway
+        pool: true,
+        maxConnections: 2, // Muy reducido para Railway
+        maxMessages: 25, // Muy reducido para Railway
+        rateLimit: 3, // Muy reducido para Railway
+        
+        // Timeouts ultra agresivos para Railway
+        connectionTimeout: 20000, // 20 segundos
+        greetingTimeout: 10000, // 10 segundos
+        socketTimeout: 20000, // 20 segundos
+        
+        // Configuraciones de seguridad más permisivas
+        secure: true,
+        tls: {
+          rejectUnauthorized: false,
+          ciphers: 'SSLv3',
+          minVersion: 'TLSv1'
+        },
+        
+        // Configuraciones específicas para Railway
+        ignoreTLS: false,
+        requireTLS: false,
+        
+        // Logging solo en desarrollo
+        debug: process.env.NODE_ENV === 'development',
+        logger: process.env.NODE_ENV === 'development'
+      })
+    });
+  }
   
-  // Configuraciones de seguridad más permisivas
-  secure: true,
-  tls: {
-    rejectUnauthorized: false,
-    ciphers: 'SSLv3',
-    minVersion: 'TLSv1'
-  },
+  // 2. Resend (alternativa moderna y confiable)
+  if (process.env.RESEND_API_KEY) {
+    transporters.push({
+      name: 'Resend',
+      transporter: nodemailer.createTransport({
+        host: 'smtp.resend.com',
+        port: 465,
+        secure: true,
+        auth: {
+          user: 'resend',
+          pass: process.env.RESEND_API_KEY,
+        },
+        // Configuraciones para Railway
+        connectionTimeout: 15000,
+        greetingTimeout: 8000,
+        socketTimeout: 15000,
+        pool: false, // Sin pool para Resend
+        maxConnections: 1,
+        maxMessages: 10,
+        rateLimit: 2
+      })
+    });
+  }
   
-  // Configuraciones específicas para Railway
-  ignoreTLS: false,
-  requireTLS: false,
+  // 3. SendGrid (alternativa tradicional)
+  if (process.env.SENDGRID_API_KEY) {
+    transporters.push({
+      name: 'SendGrid',
+      transporter: nodemailer.createTransport({
+        host: 'smtp.sendgrid.net',
+        port: 587,
+        secure: false,
+        auth: {
+          user: 'apikey',
+          pass: process.env.SENDGRID_API_KEY,
+        },
+        // Configuraciones para Railway
+        connectionTimeout: 15000,
+        greetingTimeout: 8000,
+        socketTimeout: 15000,
+        pool: false,
+        maxConnections: 1,
+        maxMessages: 10,
+        rateLimit: 2
+      })
+    });
+  }
   
-  // Logging solo en desarrollo
-  debug: process.env.NODE_ENV === 'development',
-  logger: process.env.NODE_ENV === 'development'
-});
+  return transporters;
+};
 
-// Función para verificar la conexión SMTP con timeout y reintentos
+const smtpTransporters = createSMTPTransporters();
+console.log(`🚀 Configurados ${smtpTransporters.length} transportadores SMTP:`, smtpTransporters.map(t => t.name));
+
+// Función para verificar la conexión SMTP con múltiples transportadores
 const verifySMTPConnection = async (maxRetries = 2) => {
+  if (smtpTransporters.length === 0) {
+    console.error('❌ No hay transportadores SMTP configurados');
+    return false;
+  }
+  
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`🔍 Verificando conexión SMTP (intento ${attempt}/${maxRetries})...`);
-      const user = process.env.SMTP_USER;
-      const pass = process.env.SMTP_PASS;
-      console.log('🔍USER AND PASS', user, pass);
-      // Usar Promise.race para timeout más agresivo
-      const verifyPromise = transporter.verify();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('SMTP verification timeout')), 15000)
-      );
       
-      await Promise.race([verifyPromise, timeoutPromise]);
-      console.log('✅ Conexión SMTP verificada correctamente');
-      return true;
+      // Probar cada transportador hasta que uno funcione
+      for (const { name, transporter: t } of smtpTransporters) {
+        try {
+          console.log(`🔍 Probando transportador: ${name}`);
+          const user = process.env.SMTP_USER;
+          const pass = process.env.SMTP_PASS;
+          console.log('🔍USER AND PASS', user, pass);
+          
+          // Usar Promise.race para timeout más agresivo
+          const verifyPromise = t.verify();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`SMTP verification timeout for ${name}`)), 15000)
+          );
+          
+          await Promise.race([verifyPromise, timeoutPromise]);
+          console.log(`✅ Conexión SMTP verificada correctamente con ${name}`);
+          return true;
+        } catch (transportError: any) {
+          console.warn(`⚠️ Transportador ${name} falló:`, transportError.message);
+          continue; // Probar el siguiente transportador
+        }
+      }
+      
+      console.warn(`⚠️ Intento ${attempt} falló en todos los transportadores`);
+      
+      if (attempt === maxRetries) {
+        console.error('❌ Todos los intentos de verificación SMTP fallaron');
+        return false;
+      }
+      
+      // Esperar antes del siguiente intento
+      await new Promise(resolve => setTimeout(resolve, 2000));
     } catch (error: any) {
-      console.warn(`⚠️ Intento ${attempt} falló:`, error.message);
+      console.warn(`⚠️ Error general en intento ${attempt}:`, error.message);
       
       if (attempt === maxRetries) {
         console.error('❌ Todos los intentos de verificación SMTP fallaron');
@@ -301,45 +390,71 @@ const verifySMTPConnection = async (maxRetries = 2) => {
   return false;
 };
 
-// Función mejorada para enviar emails con reintentos y timeout
+// Función mejorada para enviar emails con múltiples transportadores y reintentos
 const sendEmailWithRetry = async (mailOptions: any, maxRetries = 3) => {
+  if (smtpTransporters.length === 0) {
+    throw new Error('No hay transportadores SMTP configurados');
+  }
+  
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`📧 Intento ${attempt} de envío de email a: ${mailOptions.to}`);
       
-      // Intentar enviar directamente primero
-      try {
-        const sendPromise = transporter.sendMail(mailOptions);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Email send timeout')), 25000)
-        );
-        
-        const result = await Promise.race([sendPromise, timeoutPromise]);
-        console.log(`✅ Email enviado exitosamente en intento ${attempt}`);
-        return result;
-      } catch (sendError: any) {
-        console.log(`📡 Error en envío directo: ${sendError.message}`);
-        
-        // Si falla el envío, verificar conexión y reintentar
-        console.log(`📡 Verificando conexión SMTP antes del reintento...`);
-        const isConnected = await verifySMTPConnection(1); // Solo 1 intento de verificación
-        
-        if (!isConnected) {
-          throw new Error('Conexión SMTP no disponible');
+      // Probar cada transportador hasta que uno funcione
+      for (const { name, transporter: t } of smtpTransporters) {
+        try {
+          console.log(`📧 Probando transportador: ${name}`);
+          
+          // Intentar enviar directamente primero
+          try {
+            const sendPromise = t.sendMail(mailOptions);
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error(`Email send timeout for ${name}`)), 25000)
+            );
+            
+            const result = await Promise.race([sendPromise, timeoutPromise]);
+            console.log(`✅ Email enviado exitosamente con ${name} en intento ${attempt}`);
+            return result;
+          } catch (sendError: any) {
+            console.log(`📡 Error en envío directo con ${name}: ${sendError.message}`);
+            
+            // Si falla el envío, verificar conexión y reintentar
+            console.log(`📡 Verificando conexión SMTP de ${name} antes del reintento...`);
+            const isConnected = await verifySMTPConnection(1); // Solo 1 intento de verificación
+            
+            if (!isConnected) {
+              console.warn(`⚠️ Conexión SMTP no disponible para ${name}, probando siguiente transportador`);
+              continue; // Probar el siguiente transportador
+            }
+            
+            // Reintentar envío después de verificar conexión
+            const retryPromise = t.sendMail(mailOptions);
+            const retryTimeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error(`Email retry timeout for ${name}`)), 25000)
+            );
+            
+            const result = await Promise.race([retryPromise, retryTimeoutPromise]);
+            console.log(`✅ Email enviado exitosamente con ${name} en intento ${attempt} después de verificar conexión`);
+            return result;
+          }
+        } catch (transportError: any) {
+          console.warn(`⚠️ Transportador ${name} falló completamente:`, transportError.message);
+          continue; // Probar el siguiente transportador
         }
-        
-        // Reintentar envío después de verificar conexión
-        const retryPromise = transporter.sendMail(mailOptions);
-        const retryTimeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Email retry timeout')), 25000)
-        );
-        
-        const result = await Promise.race([retryPromise, retryTimeoutPromise]);
-        console.log(`✅ Email enviado exitosamente en intento ${attempt} después de verificar conexión`);
-        return result;
       }
+      
+      console.error(`❌ Error en intento ${attempt}: Todos los transportadores fallaron`);
+      
+      if (attempt === maxRetries) {
+        throw new Error(`Falló después de ${maxRetries} intentos: Todos los transportadores SMTP fallaron`);
+      }
+      
+      // Esperar antes del siguiente intento (backoff exponencial)
+      const delay = Math.min(2000 * Math.pow(2, attempt - 1), 8000);
+      console.log(`⏳ Esperando ${delay}ms antes del siguiente intento...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     } catch (error: any) {
-      console.error(`❌ Error en intento ${attempt}:`, error.message);
+      console.error(`❌ Error general en intento ${attempt}:`, error.message);
       
       if (attempt === maxRetries) {
         throw new Error(`Falló después de ${maxRetries} intentos: ${error.message}`);
