@@ -232,154 +232,77 @@ app.post('/api/payment/preference-by-ref', async (req: Request, res: Response) =
 });
 
 
-// Configuración SMTP múltiple para Railway
-const createSMTPTransporters = () => {
-  const transporters = [];
-  
-  // 1. Gmail (configuración principal)
-  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-    transporters.push({
-      name: 'Gmail',
-      transporter: nodemailer.createTransport({
-        service: 'Gmail',
-        host: 'smtp.gmail.com',
-        port: 465,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-        // Configuraciones optimizadas para Railway
-        pool: true,
-        maxConnections: 2, // Muy reducido para Railway
-        maxMessages: 25, // Muy reducido para Railway
-        rateLimit: 3, // Muy reducido para Railway
-        
-        // Timeouts ultra agresivos para Railway
-        connectionTimeout: 20000, // 20 segundos
-        greetingTimeout: 10000, // 10 segundos
-        socketTimeout: 20000, // 20 segundos
-        
-        // Configuraciones de seguridad más permisivas
-        secure: true,
-        tls: {
-          rejectUnauthorized: false,
-          ciphers: 'SSLv3',
-          minVersion: 'TLSv1'
-        },
-        
-        // Configuraciones específicas para Railway
-        ignoreTLS: false,
-        requireTLS: false,
-        
-        // Logging solo en desarrollo
-        debug: process.env.NODE_ENV === 'development',
-        logger: process.env.NODE_ENV === 'development'
-      })
-    });
+// Configuración SMTP solo para Gmail
+const createGmailTransporter = () => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.error('❌ Variables SMTP_USER y SMTP_PASS no configuradas');
+    return null;
   }
-  
-  // 2. Resend (alternativa moderna y confiable)
-  if (process.env.RESEND_API_KEY) {
-    transporters.push({
-      name: 'Resend',
-      transporter: nodemailer.createTransport({
-        host: 'smtp.resend.com',
-        port: 465,
-        secure: true,
-        auth: {
-          user: 'resend',
-          pass: process.env.RESEND_API_KEY,
-        },
-        // Configuraciones para Railway
-        connectionTimeout: 15000,
-        greetingTimeout: 8000,
-        socketTimeout: 15000,
-        pool: false, // Sin pool para Resend
-        maxConnections: 1,
-        maxMessages: 10,
-        rateLimit: 2
-      })
-    });
-  }
-  
-  // 3. SendGrid (alternativa tradicional)
-  if (process.env.SENDGRID_API_KEY) {
-    transporters.push({
-      name: 'SendGrid',
-      transporter: nodemailer.createTransport({
-        host: 'smtp.sendgrid.net',
-        port: 587,
-        secure: false,
-        auth: {
-          user: 'apikey',
-          pass: process.env.SENDGRID_API_KEY,
-        },
-        // Configuraciones para Railway
-        connectionTimeout: 15000,
-        greetingTimeout: 8000,
-        socketTimeout: 15000,
-        pool: false,
-        maxConnections: 1,
-        maxMessages: 10,
-        rateLimit: 2
-      })
-    });
-  }
-  
-  return transporters;
+
+  return nodemailer.createTransport({
+    service: 'Gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    // Configuraciones optimizadas para Railway
+    pool: true,
+    maxConnections: 2,
+    maxMessages: 25,
+    rateLimit: 3,
+    
+    // Timeouts optimizados para Railway
+    connectionTimeout: 20000, // 20 segundos
+    greetingTimeout: 10000, // 10 segundos
+    socketTimeout: 20000, // 20 segundos
+    
+    // Configuraciones de seguridad
+    secure: true,
+    tls: {
+      rejectUnauthorized: false,
+      minVersion: 'TLSv1'
+    },
+    
+    // Logging solo en desarrollo
+    debug: process.env.NODE_ENV === 'development',
+    logger: process.env.NODE_ENV === 'development'
+  });
 };
 
-const smtpTransporters = createSMTPTransporters();
-console.log(`🚀 Configurados ${smtpTransporters.length} transportadores SMTP:`, smtpTransporters.map(t => t.name));
+const gmailTransporter = createGmailTransporter();
+if (gmailTransporter) {
+  console.log('🚀 Transportador Gmail configurado correctamente');
+} else {
+  console.error('❌ No se pudo configurar el transportador Gmail');
+}
 
-// Función para verificar la conexión SMTP con múltiples transportadores
-const verifySMTPConnection = async (maxRetries = 2) => {
-  if (smtpTransporters.length === 0) {
-    console.error('❌ No hay transportadores SMTP configurados');
+// Función para verificar la conexión SMTP de Gmail
+const verifyGmailConnection = async (maxRetries = 2) => {
+  if (!gmailTransporter) {
+    console.error('❌ No hay transportador Gmail configurado');
     return false;
   }
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`🔍 Verificando conexión SMTP (intento ${attempt}/${maxRetries})...`);
+      console.log(`🔍 Verificando conexión Gmail (intento ${attempt}/${maxRetries})...`);
       
-      // Probar cada transportador hasta que uno funcione
-      for (const { name, transporter: t } of smtpTransporters) {
-        try {
-          console.log(`🔍 Probando transportador: ${name}`);
-          const user = process.env.SMTP_USER;
-          const pass = process.env.SMTP_PASS;
-          console.log('🔍USER AND PASS', user, pass);
-          
-          // Usar Promise.race para timeout más agresivo
-          const verifyPromise = t.verify();
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error(`SMTP verification timeout for ${name}`)), 15000)
-          );
-          
-          await Promise.race([verifyPromise, timeoutPromise]);
-          console.log(`✅ Conexión SMTP verificada correctamente con ${name}`);
-          return true;
-        } catch (transportError: any) {
-          console.warn(`⚠️ Transportador ${name} falló:`, transportError.message);
-          continue; // Probar el siguiente transportador
-        }
-      }
+      // Usar Promise.race para timeout más agresivo
+      const verifyPromise = gmailTransporter.verify();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Gmail verification timeout')), 15000)
+      );
       
-      console.warn(`⚠️ Intento ${attempt} falló en todos los transportadores`);
-      
-      if (attempt === maxRetries) {
-        console.error('❌ Todos los intentos de verificación SMTP fallaron');
-        return false;
-      }
-      
-      // Esperar antes del siguiente intento
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await Promise.race([verifyPromise, timeoutPromise]);
+      console.log('✅ Conexión Gmail verificada correctamente');
+      return true;
     } catch (error: any) {
-      console.warn(`⚠️ Error general en intento ${attempt}:`, error.message);
+      console.warn(`⚠️ Intento ${attempt} falló:`, error.message);
       
       if (attempt === maxRetries) {
-        console.error('❌ Todos los intentos de verificación SMTP fallaron');
+        console.error('❌ Todos los intentos de verificación Gmail fallaron');
         return false;
       }
       
@@ -390,63 +313,50 @@ const verifySMTPConnection = async (maxRetries = 2) => {
   return false;
 };
 
-// Función mejorada para enviar emails con múltiples transportadores y reintentos
-const sendEmailWithRetry = async (mailOptions: any, maxRetries = 3) => {
-  if (smtpTransporters.length === 0) {
-    throw new Error('No hay transportadores SMTP configurados');
+// Función para enviar emails con Gmail y reintentos
+const sendEmailWithGmail = async (mailOptions: any, maxRetries = 3) => {
+  if (!gmailTransporter) {
+    throw new Error('No hay transportador Gmail configurado');
   }
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`📧 Intento ${attempt} de envío de email a: ${mailOptions.to}`);
+      console.log(`📧 Intento ${attempt} de envío de email a: ${mailOptions.to} con Gmail`);
       
-      // Probar cada transportador hasta que uno funcione
-      for (const { name, transporter: t } of smtpTransporters) {
-        try {
-          console.log(`📧 Probando transportador: ${name}`);
+      // Intentar enviar directamente primero
+      try {
+        const sendPromise = gmailTransporter.sendMail(mailOptions);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Email send timeout')), 25000)
+        );
+        
+        const result = await Promise.race([sendPromise, timeoutPromise]);
+        console.log(`✅ Email enviado exitosamente con Gmail en intento ${attempt}`);
+        return result;
+      } catch (sendError: any) {
+        console.log(`📡 Error en envío directo con Gmail: ${sendError.message}`);
+        
+        // Si falla el envío, verificar conexión y reintentar
+        console.log(`📡 Verificando conexión Gmail antes del reintento...`);
+        const isConnected = await verifyGmailConnection(1); // Solo 1 intento de verificación
+        
+        if (!isConnected) {
+          console.warn(`⚠️ Conexión Gmail no disponible, reintentando en el siguiente intento`);
+        } else {
+          // Reintentar envío después de verificar conexión
+          const retryPromise = gmailTransporter.sendMail(mailOptions);
+          const retryTimeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Email retry timeout')), 25000)
+          );
           
-          // Intentar enviar directamente primero
-          try {
-            const sendPromise = t.sendMail(mailOptions);
-            const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error(`Email send timeout for ${name}`)), 25000)
-            );
-            
-            const result = await Promise.race([sendPromise, timeoutPromise]);
-            console.log(`✅ Email enviado exitosamente con ${name} en intento ${attempt}`);
-            return result;
-          } catch (sendError: any) {
-            console.log(`📡 Error en envío directo con ${name}: ${sendError.message}`);
-            
-            // Si falla el envío, verificar conexión y reintentar
-            console.log(`📡 Verificando conexión SMTP de ${name} antes del reintento...`);
-            const isConnected = await verifySMTPConnection(1); // Solo 1 intento de verificación
-            
-            if (!isConnected) {
-              console.warn(`⚠️ Conexión SMTP no disponible para ${name}, probando siguiente transportador`);
-              continue; // Probar el siguiente transportador
-            }
-            
-            // Reintentar envío después de verificar conexión
-            const retryPromise = t.sendMail(mailOptions);
-            const retryTimeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error(`Email retry timeout for ${name}`)), 25000)
-            );
-            
-            const result = await Promise.race([retryPromise, retryTimeoutPromise]);
-            console.log(`✅ Email enviado exitosamente con ${name} en intento ${attempt} después de verificar conexión`);
-            return result;
-          }
-        } catch (transportError: any) {
-          console.warn(`⚠️ Transportador ${name} falló completamente:`, transportError.message);
-          continue; // Probar el siguiente transportador
+          const result = await Promise.race([retryPromise, retryTimeoutPromise]);
+          console.log(`✅ Email enviado exitosamente con Gmail en intento ${attempt} después de verificar conexión`);
+          return result;
         }
       }
       
-      console.error(`❌ Error en intento ${attempt}: Todos los transportadores fallaron`);
-      
       if (attempt === maxRetries) {
-        throw new Error(`Falló después de ${maxRetries} intentos: Todos los transportadores SMTP fallaron`);
+        throw new Error(`Falló después de ${maxRetries} intentos: Gmail no pudo enviar el email`);
       }
       
       // Esperar antes del siguiente intento (backoff exponencial)
@@ -468,53 +378,53 @@ const sendEmailWithRetry = async (mailOptions: any, maxRetries = 3) => {
   }
 };
 
-// Verificar conexión SMTP de manera asíncrona sin bloquear el inicio
+// Verificar conexión Gmail de manera asíncrona sin bloquear el inicio
 setTimeout(async () => {
   try {
-    const isConnected = await verifySMTPConnection();
+    const isConnected = await verifyGmailConnection();
     if (isConnected) {
-      console.log('🚀 Conexión SMTP verificada correctamente');
+      console.log('🚀 Conexión Gmail verificada correctamente');
     } else {
-      console.warn('⚠️ Conexión SMTP no disponible - se reintentará automáticamente');
+      console.warn('⚠️ Conexión Gmail no disponible - se reintentará automáticamente');
     }
   } catch (error: any) {
-    console.warn('⚠️ Error inicial verificando SMTP:', error.message);
-    console.log('🔄 El servidor continuará funcionando y reintentará la conexión SMTP automáticamente');
+    console.warn('⚠️ Error inicial verificando Gmail:', error.message);
+    console.log('🔄 El servidor continuará funcionando y reintentará la conexión Gmail automáticamente');
   }
 }, 5000); // Esperar 5 segundos después del inicio
 
-// Sistema de reintentos automáticos para SMTP
-let smtpRetryCount = 0;
-const maxSmtpRetries = 5;
+// Sistema de reintentos automáticos para Gmail
+let gmailRetryCount = 0;
+const maxGmailRetries = 5;
 
-const retrySMTPConnection = async () => {
-  if (smtpRetryCount >= maxSmtpRetries) {
-    console.log('🔄 Máximo de reintentos SMTP alcanzado. El servidor continuará funcionando.');
+const retryGmailConnection = async () => {
+  if (gmailRetryCount >= maxGmailRetries) {
+    console.log('🔄 Máximo de reintentos Gmail alcanzado. El servidor continuará funcionando.');
     return;
   }
   
   setTimeout(async () => {
     try {
-      const isConnected = await verifySMTPConnection(1);
+      const isConnected = await verifyGmailConnection(1);
       if (isConnected) {
-        console.log('✅ Conexión SMTP restaurada automáticamente');
-        smtpRetryCount = 0; // Reset contador
+        console.log('✅ Conexión Gmail restaurada automáticamente');
+        gmailRetryCount = 0; // Reset contador
       } else {
-        smtpRetryCount++;
-        console.log(`🔄 Reintento SMTP ${smtpRetryCount}/${maxSmtpRetries} falló. Reintentando en 30 segundos...`);
-        retrySMTPConnection(); // Reintentar
+        gmailRetryCount++;
+        console.log(`🔄 Reintento Gmail ${gmailRetryCount}/${maxGmailRetries} falló. Reintentando en 30 segundos...`);
+        retryGmailConnection(); // Reintentar
       }
     } catch (error: any) {
-      smtpRetryCount++;
-      console.log(`🔄 Reintento SMTP ${smtpRetryCount}/${maxSmtpRetries} falló: ${error.message}`);
-      retrySMTPConnection(); // Reintentar
+      gmailRetryCount++;
+      console.log(`🔄 Reintento Gmail ${gmailRetryCount}/${maxGmailRetries} falló: ${error.message}`);
+      retryGmailConnection(); // Reintentar
     }
   }, 30000); // Esperar 30 segundos entre reintentos
 };
 
 // Iniciar reintentos automáticos después de 10 segundos
 setTimeout(() => {
-  retrySMTPConnection();
+  retryGmailConnection();
 }, 10000);
 
 app.post('/api/send-purchase-link', async (req: any, res: any) => {
@@ -574,7 +484,7 @@ app.post('/api/send-purchase-link', async (req: any, res: any) => {
       <p>Puedes ver tu contribución haciendo click en el siguiente enlace:</p><a href="${url}">VER BONO</a>`
       : `<p>Puedes seleccionar tus números en el siguiente enlace:</p><a href="${url}">SELECCIONAR NÚMEROS</a>`;
 
-    await sendEmailWithRetry({
+    await sendEmailWithGmail({
       from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
       to,
       subject: `¡Gracias por tu Contribución en "${raffle.title}"!`,
@@ -607,7 +517,7 @@ app.post('/api/send-confirmation-email', async (req: any, res: any) => {
       ? prizes.map((p: any, i: number) => `<li><strong>${i + 1}°:</strong> ${p.name} - ${p.description}</li>`).join('')
       : '';
     const url = `${process.env.APP_BASE_URL}/payment/${purchaseId}/success`;
-    await sendEmailWithRetry({
+    await sendEmailWithGmail({
       from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
       to,
       subject: 'Confirmación de Números y Premios',
@@ -671,9 +581,9 @@ app.get('/api/health/smtp', async (req: Request, res: Response) => {
     }
 
     // Verificación rápida de conexión con timeout
-    const connectionPromise = verifySMTPConnection();
+    const connectionPromise = verifyGmailConnection();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('SMTP verification timeout')), 10000)
+      setTimeout(() => reject(new Error('Gmail verification timeout')), 10000)
     );
 
     const isConnected = await Promise.race([connectionPromise, timeoutPromise]);
@@ -712,15 +622,15 @@ app.post('/api/test-email', async (req: Request, res: Response) => {
   }
   
   try {
-    await sendEmailWithRetry({
+    await sendEmailWithGmail({
       from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
       to,
       subject: 'Test de Email - Rafflio',
       html: `
         <h2>Test de Email</h2>
-        <p>Este es un email de prueba para verificar la configuración SMTP.</p>
+        <p>Este es un email de prueba para verificar la configuración Gmail.</p>
         <p>Timestamp: ${new Date().toISOString()}</p>
-        <p>✅ Si recibes este email, la configuración SMTP está funcionando correctamente.</p>
+        <p>✅ Si recibes este email, la configuración Gmail está funcionando correctamente.</p>
       `
     });
     

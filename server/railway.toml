@@ -12,13 +12,11 @@ restartPolicyMaxRetries = 3
 NODE_ENV = "production"
 NODE_OPTIONS = "--max-old-space-size=2048"
 
-# Configuraciones de red para múltiples proveedores SMTP
+# Configuraciones de red para Gmail SMTP
 [deploy.network]
 outboundConnections = [
   "smtp.gmail.com:587", 
-  "smtp.gmail.com:465",
-  "smtp.resend.com:465",
-  "smtp.sendgrid.net:587"
+  "smtp.gmail.com:465"
 ]
 
 # Configuraciones de recursos
