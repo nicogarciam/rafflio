@@ -291,6 +291,7 @@ const verifyGmailConnection = async (maxRetries = 2) => {
       
       // Usar Promise.race para timeout más agresivo
       const verifyPromise = gmailTransporter.verify();
+      console.log('verifyPromise', verifyPromise);
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Gmail verification timeout')), 15000)
       );
