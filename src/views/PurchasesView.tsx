@@ -34,6 +34,7 @@ export const PurchasesView: React.FC = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ purchase: any } | null>(null);
   const [feedbackModal, setFeedbackModal] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [emailLoadingModal, setEmailLoadingModal] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: '' });
 
 
   // Refrescar compras al montar la vista
@@ -51,6 +52,18 @@ export const PurchasesView: React.FC = () => {
   // Función para enviar el email correcto según si ya tiene números seleccionados
   const handleSendLinkEmail = async (to: string, purchase: Purchase) => {
     try {
+      // Mostrar modal de loading con mensaje apropiado
+      if (purchase.tickets.length === purchase.ticketCount) {
+        setEmailLoadingModal({ 
+          isOpen: true, 
+          message: 'Enviando email de confirmación...' 
+        });
+      } else {
+        setEmailLoadingModal({ 
+          isOpen: true, 
+          message: 'Enviando enlace por email...' 
+        });
+      }
 
       if (purchase.tickets.length === purchase.ticketCount) {
         // Ya tiene números seleccionados: enviar confirmación completa
@@ -65,6 +78,9 @@ export const PurchasesView: React.FC = () => {
       }
     } catch (err) {
       setFeedbackModal({ message: 'No se pudo enviar el email', type: 'error' });
+    } finally {
+      // Ocultar modal de loading
+      setEmailLoadingModal({ isOpen: false, message: '' });
     }
   };
 
@@ -185,6 +201,35 @@ export const PurchasesView: React.FC = () => {
           <Button className="mt-2 w-full" onClick={() => setFeedbackModal(null)}>
             Cerrar
           </Button>
+        </div>
+      </Modal>
+      <Modal isOpen={emailLoadingModal.isOpen} onClose={() => {}} title="Enviando Email" size="sm">
+        <div className="py-8 text-center">
+          {/* Icono de email animado */}
+          <div className="mb-6 flex justify-center">
+            <div className="relative">
+              <Mail className="w-16 h-16 text-blue-600 animate-pulse" />
+              {/* Puntos de animación */}
+              <div className="absolute -top-2 -right-2 w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
+              <div className="absolute -bottom-2 -left-2 w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="absolute top-1/2 -right-4 w-2 h-2 bg-blue-300 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+            </div>
+          </div>
+          
+          {/* Mensaje */}
+          <div className="text-lg font-medium text-gray-900 mb-4">
+            {emailLoadingModal.message}
+          </div>
+          
+          {/* Spinner de carga */}
+          <div className="flex justify-center">
+            <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          </div>
+          
+          {/* Texto adicional */}
+          <div className="text-sm text-gray-600 mt-4">
+            Por favor espera mientras se envía el email...
+          </div>
         </div>
       </Modal>
 
