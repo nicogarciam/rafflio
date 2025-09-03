@@ -238,6 +238,75 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER, // tu correo de Gmail
     pass: process.env.SMTP_PASS, // tu contraseña o app password de Gmail
   },
+  // Configuraciones para entornos de producción
+  pool: true, // Usar pool de conexiones
+  maxConnections: 5, // Máximo de conexiones simultáneas
+  maxMessages: 100, // Máximo de mensajes por conexión
+  rateLimit: 14, // Máximo de mensajes por segundo
+  // Timeouts más generosos para entornos de producción
+  connectionTimeout: 60000, // 60 segundos para conectar
+  greetingTimeout: 30000, // 30 segundos para saludo SMTP
+  socketTimeout: 60000, // 60 segundos para operaciones de socket
+  // Configuraciones de seguridad
+  secure: true, // Usar TLS
+  tls: {
+    rejectUnauthorized: false, // Para evitar problemas de certificados en producción
+    ciphers: 'SSLv3'
+  },
+  // Logging para debugging
+  debug: process.env.NODE_ENV === 'development',
+  logger: process.env.NODE_ENV === 'development'
+});
+
+// Función para verificar la conexión SMTP
+const verifySMTPConnection = async () => {
+  try {
+    await transporter.verify();
+    console.log('✅ Conexión SMTP verificada correctamente');
+    return true;
+  } catch (error) {
+    console.error('❌ Error verificando conexión SMTP:', error);
+    return false;
+  }
+};
+
+// Función mejorada para enviar emails con reintentos
+const sendEmailWithRetry = async (mailOptions: any, maxRetries = 3) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`📧 Intento ${attempt} de envío de email a: ${mailOptions.to}`);
+      
+      // Verificar conexión antes de cada intento
+      const isConnected = await verifySMTPConnection();
+      if (!isConnected) {
+        throw new Error('Conexión SMTP no disponible');
+      }
+      
+      const result = await transporter.sendMail(mailOptions);
+      console.log(`✅ Email enviado exitosamente en intento ${attempt}`);
+      return result;
+    } catch (error: any) {
+      console.error(`❌ Error en intento ${attempt}:`, error.message);
+      
+      if (attempt === maxRetries) {
+        throw new Error(`Falló después de ${maxRetries} intentos: ${error.message}`);
+      }
+      
+      // Esperar antes del siguiente intento (backoff exponencial)
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+      console.log(`⏳ Esperando ${delay}ms antes del siguiente intento...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+};
+
+// Verificar conexión al iniciar el servidor
+verifySMTPConnection().then(isConnected => {
+  if (isConnected) {
+    console.log('🚀 Servidor iniciado con conexión SMTP verificada');
+  } else {
+    console.warn('⚠️ Servidor iniciado pero conexión SMTP no verificada');
+  }
 });
 
 app.post('/api/send-purchase-link', async (req: any, res: any) => {
@@ -297,7 +366,7 @@ app.post('/api/send-purchase-link', async (req: any, res: any) => {
       <p>Puedes ver tu contribución haciendo click en el siguiente enlace:</p><a href="${url}">VER BONO</a>`
       : `<p>Puedes seleccionar tus números en el siguiente enlace:</p><a href="${url}">SELECCIONAR NÚMEROS</a>`;
 
-    await transporter.sendMail({
+    await sendEmailWithRetry({
       from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
       to,
       subject: `¡Gracias por tu Contribución en "${raffle.title}"!`,
@@ -330,7 +399,7 @@ app.post('/api/send-confirmation-email', async (req: any, res: any) => {
       ? prizes.map((p: any, i: number) => `<li><strong>${i + 1}°:</strong> ${p.name} - ${p.description}</li>`).join('')
       : '';
     const url = `${process.env.APP_BASE_URL}/payment/${purchaseId}/success`;
-    await transporter.sendMail({
+    await sendEmailWithRetry({
       from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
       to,
       subject: 'Confirmación de Números y Premios',
@@ -353,6 +422,62 @@ app.post('/api/send-confirmation-email', async (req: any, res: any) => {
 
 app.get('/api/test', async (req: Request, res: Response) => {
   res.json({ message: 'API is working!' });
+});
+
+// Endpoint de health check para monitorear SMTP
+app.get('/api/health/smtp', async (req: Request, res: Response) => {
+  try {
+    const isConnected = await verifySMTPConnection();
+    res.json({ 
+      status: isConnected ? 'healthy' : 'unhealthy',
+      smtp: {
+        connected: isConnected,
+        user: process.env.SMTP_USER ? 'configured' : 'not configured',
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ 
+      status: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Endpoint para probar envío de email
+app.post('/api/test-email', async (req: Request, res: Response) => {
+  const { to } = req.body;
+  if (!to) {
+    return res.status(400).json({ error: 'Email de destino requerido' });
+  }
+  
+  try {
+    await sendEmailWithRetry({
+      from: 'no-reply@rafflio.com <' + process.env.SMTP_USER + '>',
+      to,
+      subject: 'Test de Email - Rafflio',
+      html: `
+        <h2>Test de Email</h2>
+        <p>Este es un email de prueba para verificar la configuración SMTP.</p>
+        <p>Timestamp: ${new Date().toISOString()}</p>
+        <p>✅ Si recibes este email, la configuración SMTP está funcionando correctamente.</p>
+      `
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Email de prueba enviado exitosamente',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('Error enviando email de prueba:', error);
+    res.status(500).json({ 
+      error: 'Error enviando email de prueba',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 app.get('/', (req: Request, res: Response) => {
@@ -392,7 +517,7 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('disconnect', () => {
     // Limpia purchaseSockets si lo deseas
-    for (const [purchaseId, id] of purchaseSockets.entries()) {
+    for (const [purchaseId, id] of Array.from(purchaseSockets.entries())) {
       if (id === socket.id) {
         purchaseSockets.delete(purchaseId);
         break;
