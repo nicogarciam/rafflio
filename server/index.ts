@@ -294,7 +294,6 @@ const verifyGmailConnection = async (maxRetries = 2) => {
       
       // Usar Promise.race para timeout más agresivo
       const verifyPromise = gmailTransporter.verify();
-      console.log('verifyPromise', verifyPromise);
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Gmail verification timeout')), 15000)
       );
@@ -329,15 +328,11 @@ const sendEmailWithGmail = async (mailOptions: any, maxRetries = 3) => {
       
       // Intentar enviar directamente primero
       try {
-        const sendPromise = gmailTransporter.sendMail(mailOptions);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Email send timeout')), 25000)
-        );
-        
-        const result = await Promise.race([sendPromise, timeoutPromise]).then(console.log).catch(console.log);
+        const result = await gmailTransporter.sendMail(mailOptions);
         console.log(`✅ Email enviado exitosamente con Gmail en intento ${attempt}`);
         return result;
       } catch (sendError: any) {
+        console.log('sendError', sendError);
         console.log(`📡 Error en envío directo con Gmail: ${sendError.message}`);
         
         // Si falla el envío, verificar conexión y reintentar
