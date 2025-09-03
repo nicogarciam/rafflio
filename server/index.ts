@@ -234,18 +234,27 @@ app.post('/api/payment/preference-by-ref', async (req: Request, res: Response) =
 
 // Configuración SMTP solo para Gmail
 const createGmailTransporter = () => {
+  console.log('createGmailTransporter Usuario:', process.env.SMTP_USER);
+  console.log('createGmailTransporter Password:', process.env.SMTP_PASS);
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.error('❌ Variables SMTP_USER y SMTP_PASS no configuradas');
     return null;
   }
 
   return nodemailer.createTransport({
-    service: 'Gmail',
+    service: 'gmail',
     host: 'smtp.gmail.com',
-    port: 587,
+    port: 465,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
+    },
+
+    // Configuraciones de seguridad
+    secure: true,
+   /*  tls: {
+      rejectUnauthorized: false,
+      minVersion: 'TLSv1'
     },
     // Configuraciones optimizadas para Railway
     pool: true,
@@ -258,16 +267,10 @@ const createGmailTransporter = () => {
     greetingTimeout: 10000, // 10 segundos
     socketTimeout: 20000, // 20 segundos
     
-    // Configuraciones de seguridad
-    secure: true,
-    tls: {
-      rejectUnauthorized: false,
-      minVersion: 'TLSv1'
-    },
     
     // Logging solo en desarrollo
     debug: process.env.NODE_ENV === 'development',
-    logger: process.env.NODE_ENV === 'development'
+    logger: process.env.NODE_ENV === 'development' */
   });
 };
 
@@ -331,7 +334,7 @@ const sendEmailWithGmail = async (mailOptions: any, maxRetries = 3) => {
           setTimeout(() => reject(new Error('Email send timeout')), 25000)
         );
         
-        const result = await Promise.race([sendPromise, timeoutPromise]);
+        const result = await Promise.race([sendPromise, timeoutPromise]).then(console.log).catch(console.log);
         console.log(`✅ Email enviado exitosamente con Gmail en intento ${attempt}`);
         return result;
       } catch (sendError: any) {
