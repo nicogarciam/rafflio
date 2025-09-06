@@ -108,7 +108,7 @@ const AppContent: React.FC = () => {
                 Bienvenido a Rafflio
               </h3>
               <p className="text-gray-600 mb-6">
-                La plataforma más completa para gestionar rifas y sorteos online
+                La plataforma más completa para gestionar Bonos de Contribución
               </p>
             </div>
           } />
