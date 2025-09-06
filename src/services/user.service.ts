@@ -49,6 +49,20 @@ class UserService {
     if (error) throw error;
   };
 
+  async changeUserPassword(userId: string, newPassword: string): Promise<void> {
+    if (!supabase) throw new Error('Supabase no está configurado');
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error('La contraseña debe tener al menos 6 caracteres');
+    }
+    
+    const hashedPassword = await hashPassword(newPassword);
+    const { error } = await supabase
+      .from('users')
+      .update({ password_hash: hashedPassword })
+      .eq('id', userId);
+    if (error) throw error;
+  };
+
   private transformUserData = (data: any): User => {
     return {
       id: data.id as string,

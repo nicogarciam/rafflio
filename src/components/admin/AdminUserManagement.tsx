@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Toggle } from '../ui/Toggle';
 import { TrashIcon } from '../ui/TrashIcon';
+import { Modal } from '../ui/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { User } from '../../types';
 import { userService } from '../../services/user.service';
@@ -23,6 +24,11 @@ export const AdminUserManagement: React.FC = () => {
   const [showNewUserForm, setShowNewUserForm] = useState(false);
   const [newUser, setNewUser] = useState<NewUserForm>({ email: '', name: '', password: '', role: 'USER' });
   const [creating, setCreating] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
   const handleNewUserChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setNewUser(prev => ({ ...prev, [name]: value }));
@@ -70,6 +76,53 @@ export const AdminUserManagement: React.FC = () => {
     } catch {
       setError('No se pudo actualizar el usuario');
     }
+  };
+
+  const handleChangePassword = (user: User) => {
+    setSelectedUser(user);
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowChangePasswordModal(true);
+  };
+
+  const handleSubmitPasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser?.id) return;
+
+    if (newPassword !== confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    setChangingPassword(true);
+    setError(null);
+
+    try {
+      await userService.changeUserPassword(selectedUser.id, newPassword);
+      setShowChangePasswordModal(false);
+      setSelectedUser(null);
+      setNewPassword('');
+      setConfirmPassword('');
+      // Mostrar mensaje de éxito
+      alert('Contraseña actualizada exitosamente');
+    } catch (err: any) {
+      setError(err.message || 'No se pudo cambiar la contraseña');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleClosePasswordModal = () => {
+    setShowChangePasswordModal(false);
+    setSelectedUser(null);
+    setNewPassword('');
+    setConfirmPassword('');
+    setError(null);
   };
 
   if (loading) return <div>Cargando usuarios...</div>;
@@ -172,6 +225,21 @@ export const AdminUserManagement: React.FC = () => {
                   <td className="py-2">
                     <div className="flex gap-2 justify-end items-center">
                       <div className="relative group">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => user.id && handleChangePassword(user)}
+                          disabled={!user.id}
+                          className="p-2 h-8 w-8 flex items-center justify-center"
+                          aria-label="Cambiar contraseña"
+                        >
+                          🔑
+                        </Button>
+                        <span className="absolute z-10 left-1/2 -translate-x-1/2 bottom-full mb-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap pointer-events-none">
+                          Cambiar contraseña
+                        </span>
+                      </div>
+                      <div className="relative group">
                         <Toggle
                           checked={user.isActive}
                           onChange={() => user.id && handleToggleActive(user.id, user.isActive)}
@@ -219,6 +287,16 @@ export const AdminUserManagement: React.FC = () => {
                 <span className="font-medium">Rol:</span> {user.role}
               </div>
               <div className="flex gap-2 justify-end items-center mt-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => user.id && handleChangePassword(user)}
+                  disabled={!user.id}
+                  className="p-2 h-8 w-8 flex items-center justify-center"
+                  aria-label="Cambiar contraseña"
+                >
+                  🔑
+                </Button>
                 <Toggle
                   checked={user.isActive}
                   onChange={() => user.id && handleToggleActive(user.id, user.isActive)}
@@ -242,6 +320,70 @@ export const AdminUserManagement: React.FC = () => {
           ))}
         </div>
       </CardContent>
+      
+      {/* Modal para cambiar contraseña */}
+      <Modal
+        isOpen={showChangePasswordModal}
+        onClose={handleClosePasswordModal}
+        title={`Cambiar contraseña - ${selectedUser?.name || ''}`}
+      >
+        <form onSubmit={handleSubmitPasswordChange} className="space-y-4">
+          <div>
+            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              Nueva contraseña
+            </label>
+            <input
+              type="password"
+              id="newPassword"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ingresa la nueva contraseña"
+              required
+              minLength={6}
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              Confirmar contraseña
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Confirma la nueva contraseña"
+              required
+              minLength={6}
+            />
+          </div>
+          
+          {error && (
+            <div className="text-red-600 text-sm">
+              {error}
+            </div>
+          )}
+          
+          <div className="flex gap-2 justify-end">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleClosePasswordModal}
+              disabled={changingPassword}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={changingPassword || !newPassword || !confirmPassword}
+            >
+              {changingPassword ? 'Cambiando...' : 'Cambiar contraseña'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </Card>
   );
 };
