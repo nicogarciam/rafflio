@@ -15,6 +15,7 @@ export interface Raffle {
   id: string;
   title: string;
   description: string;
+  descriptionShort: string;
   drawDate: string;
   createdAt: string;
   prizes: Prize[];

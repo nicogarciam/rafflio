@@ -34,11 +34,13 @@ export const RaffleDetail: React.FC<RaffleDetailProps> = ({ onBuyTickets }) => {
     if (!raffle) return;
     const message = getWhatsappShareMessageSafe(raffle);
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log(message);
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     if (isMobile) {
       window.location.href = url;
     } else {
-      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+      console.log(url);
+      window.open(`https://wa.me/?text=${message}`, '_blank');
     }
   };
 

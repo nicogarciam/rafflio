@@ -118,6 +118,7 @@ export const RaffleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const newRaffle = await raffleService.createRaffle({
         title: raffleData.title,
         description: raffleData.description,
+        descriptionShort: raffleData.descriptionShort,
         drawDate: raffleData.drawDate,
         maxTickets: raffleData.maxTickets,
         prizes: raffleData.prizes,

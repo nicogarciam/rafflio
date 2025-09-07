@@ -5,8 +5,8 @@ export function getWhatsappShareMessageSafe(raffle: Raffle): string {
     const url = `${window.location.origin}/raffle/view/${raffle.id}`;
     const drawDate = new Date(raffle.drawDate).toLocaleDateString('es-AR');
 
-    let message = `🎉 *${raffle.title}* 🎉\n`;
-    message += `${raffle.description}\n\n`;
+    let message = `🎉 *${raffle.title}* \n`;
+    message += `${raffle.descriptionShort}\n\n`;
     message += `📅 *Sorteo:* ${drawDate}\n\n`;
 
     // Premios (mostrar solo los 3 primeros y leyenda si hay más)
@@ -17,8 +17,7 @@ export function getWhatsappShareMessageSafe(raffle: Raffle): string {
         message += `🏆 *PREMIOS:*\n`;
         topPrizes.forEach((prize, index) => {
             const position = index === 0 ? '• 1er Premio' : `• ${index + 1}° Premio`;
-            const description = prize.description ? ` - ${prize.description}` : '';
-            message += `${position}: ${prize.name}${description}\n`;
+            message += `${position}: ${prize.name}\n`;
         });
         if (totalPrizes > 3) {
             message += `… y ${totalPrizes - 3} premios MAS, no podes perder\n`;

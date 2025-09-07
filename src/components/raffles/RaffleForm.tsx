@@ -19,6 +19,7 @@ interface RaffleFormProps {
 export const RaffleForm: React.FC<RaffleFormProps> = ({ initialRaffle, isEdit, onSubmit, onCancel, loading }) => {
     const [title, setTitle] = useState(initialRaffle?.title || '');
     const [description, setDescription] = useState(initialRaffle?.description || '');
+    const [descriptionShort, setDescriptionShort] = useState(initialRaffle?.descriptionShort || '');
     const [drawDate, setDrawDate] = useState(normalizeDate(initialRaffle?.drawDate));
     const [maxTickets, setMaxTickets] = useState(initialRaffle?.maxTickets || 300);
     const [prizes, setPrizes] = useState<Omit<Prize, 'id' | 'raffleId'>[]>(initialRaffle?.prizes?.map(p => ({ name: p.name, description: p.description })) || [{ name: '', description: '' }]);
@@ -111,11 +112,13 @@ export const RaffleForm: React.FC<RaffleFormProps> = ({ initialRaffle, isEdit, o
         await onSubmit({
             title,
             description,
+            descriptionShort,
             drawDate,
             maxTickets,
             prizes,
             priceTiers,
             accountId: selectedAccountId,
+            
         });
         setFormLoading(false);
     };
@@ -180,6 +183,19 @@ export const RaffleForm: React.FC<RaffleFormProps> = ({ initialRaffle, isEdit, o
                             💡 Ingresa un título primero para que la IA pueda generar una mejor descripción
                         </p>
                     )}
+                </div>
+                <div>
+                    <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-gray-700">Descripción Corta para WhatsApp</label>
+                    </div>
+                    <textarea
+                        value={descriptionShort}
+                        onChange={e => setDescriptionShort(e.target.value)}
+                        rows={4}
+                        className="w-full border rounded px-3 py-2"
+                        required
+                        placeholder="Una frase corta para WhatsApp"
+                    />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-end">
                     <Input label="Fecha de sorteo" type="datetime-local" value={drawDate} onChange={e => setDrawDate(e.target.value)} required />

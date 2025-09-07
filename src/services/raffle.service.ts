@@ -119,6 +119,7 @@ class RaffleService {
         accountId: raffleData.accountId, // or use raffleData.accountId if available
         title: raffleData.title,
         description: raffleData.description,
+        descriptionShort: raffleData.descriptionShort,
         drawDate: raffleData.drawDate,
         maxTickets: raffleData.maxTickets,
         totalTickets: raffleData.maxTickets,
@@ -138,6 +139,7 @@ class RaffleService {
         .insert({
           title: raffleData.title,
           description: raffleData.description,
+          description_short: raffleData.descriptionShort,
           draw_date: raffleData.drawDate,
           max_tickets: raffleData.maxTickets,
           account_id: raffleData.accountId,
@@ -224,6 +226,7 @@ class RaffleService {
         .update({
           title: updates.title,
           description: updates.description,
+          description_short: updates.descriptionShort,
           draw_date: updates.drawDate,
           max_tickets: updates.maxTickets,
           is_active: updates.isActive,
@@ -303,6 +306,7 @@ class RaffleService {
       accountId: data.account_id,
       title: data.title,
       description: data.description,
+      descriptionShort: data.description_short,
       drawDate: data.draw_date,
       maxTickets: data.max_tickets,
       totalTickets: data.max_tickets,
@@ -342,6 +346,7 @@ class RaffleService {
       accountId: 'mock-account', // Added accountId property
       title: 'Rifa de Prueba',
       description: 'Una rifa de ejemplo para desarrollo',
+      descriptionShort: 'Una rifa de ejemplo para desarrollo',
       drawDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       maxTickets: 100,
       totalTickets: 100,
