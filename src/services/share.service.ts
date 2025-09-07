@@ -9,14 +9,20 @@ export function getWhatsappShareMessageSafe(raffle: Raffle): string {
     message += `${raffle.description}\n\n`;
     message += `📅 *Sorteo:* ${drawDate}\n\n`;
 
-    // Premios
+    // Premios (mostrar solo los 3 primeros y leyenda si hay más)
     if (raffle.prizes && raffle.prizes.length > 0) {
+        const totalPrizes = raffle.prizes.length;
+        const topPrizes = raffle.prizes.slice(0, 3);
+
         message += `🏆 *PREMIOS:*\n`;
-        raffle.prizes.forEach((prize, index) => {
-            const position = index === 0 ? '• 1er Premio: Premio Mayor' : `• ${index + 1}° Premio`;
+        topPrizes.forEach((prize, index) => {
+            const position = index === 0 ? '• 1er Premio' : `• ${index + 1}° Premio`;
             const description = prize.description ? ` - ${prize.description}` : '';
             message += `${position}: ${prize.name}${description}\n`;
         });
+        if (totalPrizes > 3) {
+            message += `… y ${totalPrizes - 3} premios MAS, no podes perder\n`;
+        }
         message += '\n';
     }
 

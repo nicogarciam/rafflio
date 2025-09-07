@@ -181,13 +181,13 @@ class RaffleService {
       const { data: existingTickets, error: ticketsQueryError } = await supabase
         .from('tickets')
         .select('id')
-        .eq('raffle_id', raffle.id);
+        .eq('raffle_id', raffle.id as string); // Explicitly cast raffle.id to string to resolve potential 'unknown' type issue
       if (ticketsQueryError) {
         console.error('Error checking existing tickets:', ticketsQueryError);
       }
       if (!existingTickets || existingTickets.length === 0) {
         const ticketsData = Array.from({ length: raffleData.maxTickets }, (_, i) => ({
-          number: i + 1,
+          number: i,
           status: 'available',
           raffle_id: raffle.id,
         }));

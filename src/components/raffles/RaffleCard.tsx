@@ -122,13 +122,11 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
                   <p className="font-medium text-gray-900">{raffle.prizes[0].name}</p>
                   <p className="text-sm text-gray-600">{raffle.prizes[0].description}</p>
                 </div>
-                <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                  1°
-                </div>
+                
               </div>
             )}
             {raffle.prizes.length > 1 && (
-              <p className="text-sm text-gray-500 text-center">
+              <p className="text-md font-bold text-blue-900 text-center">
                 +{raffle.prizes.length - 1} premio{raffle.prizes.length - 1 > 1 ? 's' : ''} más
               </p>
             )}
@@ -146,7 +144,6 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onBuyTickets }) 
                 key={tier.id}
                 type="button"
                 className="flex flex-col items-center justify-center p-3 border border-gray-200 rounded-lg bg-white min-w-[120px] hover:bg-blue-50 hover:border-blue-400 focus:outline-none transition"
-                onClick={() => onBuyTickets(raffle, tier)}
                 disabled={!raffle.isActive}
               >
                 <span className="font-medium text-gray-900">{tier.ticketCount} números</span>

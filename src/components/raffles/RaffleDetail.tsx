@@ -153,7 +153,6 @@ export const RaffleDetail: React.FC<RaffleDetailProps> = ({ onBuyTickets }) => {
                 key={tier.id}
                 type="button"
                 className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-400 focus:outline-none transition min-w-[120px]"
-                onClick={() => onBuyTickets && onBuyTickets(raffle, tier)}
                 disabled={!raffle.isActive}
               >
                 <div>

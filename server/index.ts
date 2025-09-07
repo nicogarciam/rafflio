@@ -12,6 +12,7 @@ import type { Socket } from 'socket.io';
 import { PaymentSearchOptions } from "mercadopago/dist/clients/payment/search/types";
 import { MerchantOrderSearchOptions } from "mercadopago/dist/clients/merchantOrder/search/types";
 import { sendEmailWithBrevo } from "./email.service";
+import { aiService } from "./ai.service";
 const { createClient } = require('@supabase/supabase-js');
 
 
@@ -346,6 +347,51 @@ app.post('/api/send-confirmation-email', async (req: any, res: any) => {
 app.get('/api/test', async (req: Request, res: Response) => {
   res.json({ message: 'API is working!' });
 });
+
+// Endpoint para generar descripción con IA
+app.post('/api/ai/generate-description', async (req: Request, res: Response) => {
+  try {
+    const { prompt, title, currentDescription, prizes, priceTiers } = req.body;
+    
+    if (!prompt && !title) {
+      return res.status(400).json({ error: 'Prompt o título es requerido' });
+    }
+
+    let result;
+    
+    if (title) {
+      // Usar el método específico para descripciones de rifas
+      result = await aiService.generateRaffleDescription({
+        title,
+        currentDescription,
+        prizes,
+        priceTiers
+      });
+    } else {
+      // Usar el método general de generación de texto
+      result = await aiService.generateText({ prompt });
+    }
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        description: result.text
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error || 'Error al generar descripción'
+      });
+    }
+  } catch (error: any) {
+    console.error('Error generando descripción con IA:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Error interno del servidor' 
+    });
+  }
+});
+
 
 // Health check básico para Railway (responde inmediatamente)
 app.get('/api/health', (req: Request, res: Response) => {

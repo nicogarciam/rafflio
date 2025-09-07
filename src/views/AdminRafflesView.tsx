@@ -8,8 +8,6 @@ import { useRaffle } from '../contexts/RaffleContext';
 export const AdminRafflesView: React.FC = () => {
   const {
     raffles,
-    isLoading,
-    error,
     updateRaffle,
     deleteRaffle,
     filters,
@@ -35,6 +33,13 @@ export const AdminRafflesView: React.FC = () => {
 
   const handleToggle = async (raffle: any) => {
     await updateRaffle(raffle.id, { isActive: !raffle.isActive });
+  };
+
+  const truncateChars = (text: string, maxChars: number) => {
+    if (!text) return '';
+    const t = text.trim();
+    if (t.length <= maxChars) return t;
+    return t.slice(0, maxChars).trimEnd() + '…';
   };
 
   return (
@@ -93,7 +98,7 @@ export const AdminRafflesView: React.FC = () => {
         {/* Desktop table */}
         <div className="hidden md:block min-w-[900px]">
           {/* Encabezado */}
-          <div className="grid grid-cols-[2fr_1fr_0.5fr_0.5fr_1fr_1fr_0.5fr] gap-1 bg-gray-100 rounded-t-lg px-2 py-2 text-xs font-semibold text-gray-700">
+          <div className="grid grid-cols-[1.7fr_0.7fr_0.3fr_0.3fr_1.5fr_0.5fr_0.5fr] gap-1 bg-gray-100 rounded-t-lg px-2 py-2 text-xs font-semibold text-gray-700">
             <div>Bono Contribución</div>
             <div>Fecha sorteo</div>
             <div>Tickets</div>
@@ -104,16 +109,16 @@ export const AdminRafflesView: React.FC = () => {
           </div>
           {/* Filas */}
           {raffles.map(raffle => (
-            <div key={raffle.id} className="grid grid-cols-[2fr_1fr_0.5fr_0.5fr_1fr_1fr_0.5fr] gap-1 border-b px-2 py-2 items-center text-sm bg-white hover:bg-gray-50 transition-all">
+            <div key={raffle.id} className="grid grid-cols-[1.7fr_0.7fr_0.3fr_0.3fr_1.5fr_0.5fr_0.5fr] gap-1 border-b px-2 py-2 items-center text-sm bg-white hover:bg-gray-50 transition-all">
               <div>
                 <div className="font-semibold text-gray-900">{raffle.title}</div>
                 {raffle.description && (
-                  <div className="text-xs text-gray-500 mt-0.5">{raffle.description}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{truncateChars(raffle.description, 120)}</div>
                 )}
               </div>
               <div className="text-xs text-gray-700">{new Date(raffle.drawDate).toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
               <div className="font-semibold text-blue-900">{raffle.soldTickets?.toLocaleString('es-AR')} / <span className="text-green-900">{raffle.maxTickets?.toLocaleString('es-AR')}</span></div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col items-start gap-1">
                 <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${raffle.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{raffle.isActive ? 'Activa' : 'Inactiva'}</span>
                 <label className="inline-flex items-center cursor-pointer">
                   <input
@@ -127,14 +132,17 @@ export const AdminRafflesView: React.FC = () => {
                   </div>
                 </label>
               </div>
-              <div className="text-xs text-gray-700">
+              <div className="text-xs text-gray-700 pl-2">
                 {raffle.prizes?.length > 0 ? (
-                  <ul className="list-disc ml-4">
-                    {raffle.prizes.map((p, i) => <li key={i}>{p.name}</li>)}
-                  </ul>
+                  <ol className="list-decimal ml-4">
+                    {raffle.prizes.slice(0, 3).map((p, i) => <li key={i}>{p.name}</li>)}
+                    {raffle.prizes.length > 3 && (
+                      <b>+{raffle.prizes.length - 3} premios más</b>
+                    )}
+                  </ol>
                 ) : 'Sin premios'}
               </div>
-              <div className="text-xs text-gray-700">
+              <div className="text-xs text-gray-700 text-left flex flex-row items-end justify-end">
                 {raffle.priceTiers?.length > 0 ? (
                   <ul className="list-disc ml-4">
                     {raffle.priceTiers.map((t, i) => <li key={i}>{t.ticketCount} x ${t.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</li>)}
@@ -195,17 +203,36 @@ export const AdminRafflesView: React.FC = () => {
                 <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${raffle.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{raffle.isActive ? 'Activa' : 'Inactiva'}</span>
               </div>
               {raffle.description && (
-                <div className="text-xs text-gray-500 mb-1">{raffle.description}</div>
+                <div className="text-xs text-gray-500 mb-1">{truncateChars(raffle.description, 120)}</div>
               )}
               <div className="flex flex-wrap gap-2 text-xs text-gray-700">
                 <div><span className="font-semibold">Fecha:</span> {new Date(raffle.drawDate).toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
                 <div><span className="font-semibold">Tickets:</span> {raffle.soldTickets?.toLocaleString('es-AR')} / {raffle.maxTickets?.toLocaleString('es-AR')}</div>
               </div>
               <div className="flex flex-wrap gap-2 text-xs text-gray-700">
-                {raffle.prizes?.length > 0 && <div><span className="font-semibold">Premios:</span> {raffle.prizes.map((p, i) => p.name).join(', ')}</div>}
-                {raffle.priceTiers?.length > 0 && <div><span className="font-semibold">Precios:</span> {raffle.priceTiers.map((t, i) => `${t.ticketCount} x $${t.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`).join(', ')}</div>}
+                {raffle.prizes?.length > 0 && (
+                  <div>
+                    <span className="font-semibold">Premios:</span> {
+                      raffle.prizes.length <= 3
+                        ? raffle.prizes.map((p) => p.name).join(', ')
+                        : `${raffle.prizes.slice(0, 3).map((p) => p.name).join(', ')} +${raffle.prizes.length - 3} más`
+                    }
+                  </div>
+                )}
+                {raffle.priceTiers?.length > 0 && <div><span className="font-semibold">Precios:</span> {raffle.priceTiers.map((t) => `${t.ticketCount} x $${t.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`).join(', ')}</div>}
               </div>
               <div className="flex gap-2 items-center justify-end mt-2">
+                <label className="inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={raffle.isActive}
+                    onChange={() => handleToggle(raffle)}
+                  />
+                  <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-green-400 transition-all relative">
+                    <div className={`absolute left-1 top-1 w-3 h-3 rounded-full bg-white shadow transition-all ${raffle.isActive ? 'translate-x-4' : ''}`}></div>
+                  </div>
+                </label>
                 <button
                   title="Editar"
                   className="p-1 rounded hover:bg-indigo-100"
@@ -271,7 +298,7 @@ export const AdminRafflesView: React.FC = () => {
           <button
             className="px-2 py-1 border rounded disabled:opacity-50"
             onClick={() => setPage(page + 1)}
-            // Aquí deberías calcular el total de páginas si tienes ese dato
+          // Aquí deberías calcular el total de páginas si tienes ese dato
           >Siguiente</button>
         </div>
       </div>
