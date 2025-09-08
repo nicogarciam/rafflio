@@ -67,12 +67,14 @@ export const CartView: React.FC = () => {
   if (!raffle) return <div>Selecciona un Bono Contribución para comenzar.</div>;
 
   return (
-    <div className="relative min-h-[80vh]">
+    // Agrego padding-bottom en mobile para que el panel fijo no tape la selección
+    <div className="relative min-h-[80vh] pb-36 md:pb-0">
       <div className="max-w-5xl mx-auto py-2">
         <TicketSelectorCart tickets={availableTickets} />
       </div>
       {/* Panel flotante abajo a la derecha */}
-      <div className="fixed bottom-6 right-6 z-50 w-full max-w-xs bg-white border border-blue-200 rounded-xl shadow-xl p-4 flex flex-col gap-3">
+      <div className={`fixed z-50 bg-white border border-blue-200 p-4 flex flex-col gap-3 w-full left-0 right-0 bottom-0 rounded-none shadow-none
+        md:bottom-6 md:right-6 md:left-auto md:max-w-xs md:rounded-xl md:shadow-xl`}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="font-semibold text-blue-900">Seleccionados: <span className="text-lg">{selectedNumbers.length}</span></span>
           <span className="font-semibold text-green-700">Monto: ${montoTotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
@@ -84,6 +86,11 @@ export const CartView: React.FC = () => {
               .map(ticket => (
                 <span key={ticket.id} className="bg-blue-500 text-white px-2 py-1 rounded font-mono text-xs">{ticket.number}</span>
               ))}
+          </div>
+        )}
+        {selectedNumbers.length == 0 && (
+          <div className="flex flex-wrap gap-1 mb-1">
+           <span className="bg-red-500 text-white px-2 py-1 rounded font-mono text-xs">NO HAY NÚMEROS SELECCIONADOS</span>
           </div>
         )}
         <div className="flex gap-2">

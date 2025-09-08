@@ -49,9 +49,9 @@ export const TicketSelectorCart: React.FC<TicketSelectorCartProps> & { SummaryPr
         <div className="text-xl font-bold text-gray-900">
           Selecciona tus números para {raffle?.title && <span className="text-blue-700">{raffle.title}</span>}
         </div>
-        {raffle?.description && (
+        {/*  {raffle?.description && (
           <div className="text-gray-600 text-sm mb-2">{raffle.description}</div>
-        )}
+        )} */}
         <div className="flex items-center gap-3 flex-wrap">
           <span className="font-semibold text-lg text-gray-900 flex items-center">
             <span className="mr-2">💲</span> Opciones de Contribución
@@ -67,12 +67,12 @@ export const TicketSelectorCart: React.FC<TicketSelectorCartProps> & { SummaryPr
         <div className="flex items-center space-x-4 text-sm mt-2">
           <span className="inline-flex items-center"><span className="w-3 h-3 rounded-full bg-green-400 mr-1"></span>Disponible</span>
           <span className="inline-flex items-center"><span className="w-3 h-3 rounded-full bg-blue-400 mr-1"></span>Seleccionado</span>
-          <span className="inline-flex items-center"><span className="w-3 h-3 rounded-full bg-red-400 mr-1"></span>Vendido</span>
+          {/* <span className="inline-flex items-center"><span className="w-3 h-3 rounded-full bg-red-400 mr-1"></span>Vendido</span> */}
         </div>
       </div>
       {/* Grilla de números */}
-      <div className="border rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto">
-        <div className="grid grid-cols-10 gap-2">
+      <div className="border rounded-lg p-4 bg-gray-50 max-h-[80vh] md:max-h-[70vh] overflow-y-auto">
+        <div className="grid grid-cols-8 sm:grid-cols-8 md:grid-cols-10 gap-2">
           {sortedTickets.map(ticket => {
             const status = isSelected(ticket)
               ? 'selected'
