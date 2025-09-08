@@ -4,6 +4,7 @@ import { PaymentMethod } from './PurchasePaymentMethodSelector';
 import { Button } from '../../ui/Button';
 import { CreditCard } from 'lucide-react';
 import { BankTransferInfo } from './BankTransferInfo';
+import { MercadoPagoResponse } from '../../../services/mercadopago';
 
 interface PurchasePaymentStepProps {
     paymentMethod: PaymentMethod;
@@ -17,6 +18,7 @@ interface PurchasePaymentStepProps {
     purchaseId?: string;
     loading?: boolean;
     raffleTitle?: string;
+    preference?: MercadoPagoResponse | null;
 }
 
 export const PurchasePaymentStep: React.FC<PurchasePaymentStepProps> = ({
@@ -30,17 +32,21 @@ export const PurchasePaymentStep: React.FC<PurchasePaymentStepProps> = ({
     error,
     purchaseId,
     loading,
-    raffleTitle = ''
+    raffleTitle = '',
+    preference
 }) => {
     // Render según método de pago
     if (paymentMethod === 'mercadopago') {
         return (
             <div className="text-center space-y-6">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto animate-spin">
+                    <CreditCard className="w-8 h-8 text-blue-600" />
+                </div>
+                <h2 className="text-xl font-semibold text-blue-900 mb-2">
+                    Si no se abre MercadoPago en una ventana de pago, <a href={preference?.init_point} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">haz click aquí</a>
+                </h2>
                 {paymentStatus !== 'approved' ? (
                     <>
-                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto animate-spin">
-                            <CreditCard className="w-8 h-8 text-blue-600" />
-                        </div>
                         <div>
                             <h3 className="text-xl font-semibold text-blue-900 mb-2">
                                 Procesando tu contribución...
@@ -119,7 +125,7 @@ export const PurchasePaymentStep: React.FC<PurchasePaymentStepProps> = ({
         );
     }
 
-// Obtener el título de la rifa si está disponible
+    // Obtener el título de la rifa si está disponible
 
     // cash
     return (

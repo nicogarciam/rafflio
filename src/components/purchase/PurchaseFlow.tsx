@@ -3,7 +3,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useRaffle } from '../../contexts/RaffleContext';
 import { usePaymentStatus } from '../../hooks/usePaymentStatus';
 import { config } from '../../lib/config';
-import { mercadoPagoService } from '../../services/mercadopago';
+import { MercadoPagoResponse, mercadoPagoService } from '../../services/mercadopago';
 import { PriceTier, Raffle } from '../../types';
 import { Modal } from '../ui/Modal';
 import { PaymentMethod, PurchasePaymentMethodSelector } from './PurchaseFlow/PurchasePaymentMethodSelector';
@@ -34,6 +34,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [purchaseId, setPurchaseId] = useState('');
   const [preferenceId, setPreferenceId] = useState('');
+  const [preference, setPreference] = useState<MercadoPagoResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'failed' | 'rejected' | 'cancelled' | null>(null);
@@ -130,9 +131,11 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
         };
         const preference = await mercadoPagoService.createPaymentPreference(paymentData, purchase.id);
         setPreferenceId(preference.id);
+        setPreference(preference);
         await updatePurchasePreferenceId(purchase.id, preference.id);
         window.open(preference.init_point, '_blank', 'noopener,noreferrer');
       }
+      await new Promise(resolve => setTimeout(resolve, 2000));
       await sendPurchaseLinkEmail(purchase.email, purchase.id);
       setLoading(false);
       setStep(4);
@@ -211,6 +214,7 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
           onComplete={handlePaymentStepComplete}
           account={raffle.account}
           paymentStatus={paymentStatus}
+          preference={preference}
           error={error}
           purchaseId={purchaseId}
           loading={loading}
