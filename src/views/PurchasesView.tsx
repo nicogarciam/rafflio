@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 import { purchaseService } from '../services/purchase.service';
 import { ShoppingCart } from 'lucide-react';
 import { config } from '../lib/config';
+import { configService } from '../services/config.service';
 import { Info, Edit2, Mail, Link as LinkIcon, SortDesc, SortAsc, CreditCard, Wallet, DollarSign } from 'lucide-react';
 import { sendPurchaseLinkEmail, sendConfirmationEmail } from '../services/email.service';
 import { Purchase } from '../types';
@@ -179,6 +180,10 @@ export const PurchasesView: React.FC = () => {
   const [totalGeneral, setTotalGeneral] = useState<number>(0);
   const [countsByMethod, setCountsByMethod] = useState<Record<string, number>>({});
   const [loadingTotals, setLoadingTotals] = useState<boolean>(false);
+  const [mpRetentionPercent, setMpRetentionPercent] = useState<number>(0);
+  const mpGross = Number(totalsByMethod['mercadopago'] || 0);
+  const mpRetentionAmount = mpGross * (mpRetentionPercent / 100);
+  const adjustedTotalGeneral = Number(totalGeneral || 0) - mpRetentionAmount;
 
   const fetchTotals = async () => {
     try {
@@ -208,6 +213,21 @@ export const PurchasesView: React.FC = () => {
     }, 350); // 350ms debounce
     return () => clearTimeout(timer);
   }, [filters.raffleId, filters.status]);
+
+  // Cargar configuración de MercadoPago para obtener el porcentaje de retención
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const cfg = await configService.getMercadoPagoConfig();
+        if (!mounted) return;
+        setMpRetentionPercent(cfg?.retentionPercent ?? 0);
+      } catch (err) {
+        console.warn('No se pudo cargar configuración de MercadoPago para retención');
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -395,7 +415,15 @@ export const PurchasesView: React.FC = () => {
             <ShoppingCart className="w-7 h-7 text-blue-500" />
           </div>
           <div className="text-lg font-semibold text-blue-700">{loadingTotals ? '...' : (totalsByMethod['mercadopago'] || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
-          <div className="text-xs text-gray-500 mt-1">{loadingTotals ? '' : `${countsByMethod['mercadopago'] || 0} compras`}</div>
+          {!loadingTotals && (totalsByMethod['mercadopago'] || 0) > 0 ? (
+            <div className="text-xs text-gray-500 mt-1">
+              {`${countsByMethod['mercadopago'] || 0} compras`}
+              <div className="text-xs text-gray-500 mt-1">{`${mpRetentionPercent}% retención — ${((totalsByMethod['mercadopago'] || 0) * (mpRetentionPercent / 100)).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })} retenidos`}</div>
+              <div className="text-xs text-green-600 mt-1">Recibido: {((totalsByMethod['mercadopago'] || 0) * (1 - mpRetentionPercent / 100)).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500 mt-1">{loadingTotals ? '' : `${countsByMethod['mercadopago'] || 0} compras`}</div>
+          )}
         </div>
         <div className="bg-white border rounded p-3">
           <div className="flex items-center justify-between">
@@ -418,8 +446,11 @@ export const PurchasesView: React.FC = () => {
             <div className="text-sm text-gray-500">Total General</div>
             <Wallet className="w-7 h-7 text-gray-700" />
           </div>
-          <div className="text-lg font-semibold text-gray-900">{loadingTotals ? '...' : totalGeneral.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
+          <div className="text-lg font-semibold text-gray-900">{loadingTotals ? '...' : adjustedTotalGeneral.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
           <div className="text-xs text-gray-500 mt-1">{loadingTotals ? '' : `${Object.values(countsByMethod).reduce((s, v) => s + v, 0)} compras`}</div>
+          {!loadingTotals && mpRetentionPercent > 0 && (
+            <div className="text-xs text-gray-500 mt-1">(Incluye retención MercadoPago: {mpRetentionPercent}% — {mpRetentionAmount.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })} retenidos)</div>
+          )}
         </div>
       </div>
 

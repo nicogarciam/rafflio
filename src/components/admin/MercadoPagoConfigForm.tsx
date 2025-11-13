@@ -9,7 +9,7 @@ export const MercadoPagoConfigForm: React.FC<{ onSaved?: () => void; }> = ({ onS
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    const [payload, setPayload] = useState<MercadoPagoConfigPayload>({ accessToken: '', publicKey: '', sandbox: false });
+    const [payload, setPayload] = useState<MercadoPagoConfigPayload>({ accessToken: '', publicKey: '', sandbox: false, retentionPercent: 0 });
 
     useEffect(() => {
         (async () => {
@@ -60,6 +60,18 @@ export const MercadoPagoConfigForm: React.FC<{ onSaved?: () => void; }> = ({ onS
                 <div className="flex items-center gap-2">
                     <input type="checkbox" id="mp-sandbox" checked={!!payload.sandbox} onChange={e => handleChange('sandbox', e.target.checked)} disabled={loading || saving} />
                     <label htmlFor="mp-sandbox" className="text-sm text-gray-700">Usar Sandbox</label>
+                </div>
+                <div>
+                    <label className="text-sm text-gray-700 mb-1 block">% Retención MercadoPago</label>
+                    <Input
+                        value={String(payload.retentionPercent ?? 0)}
+                        onChange={e => handleChange('retentionPercent', Number(e.target.value))}
+                        type="number"
+                        disabled={loading || saving}
+                        min={0}
+                        step={0.01}
+                    />
+                    <div className="text-xs text-gray-500 mt-1">Porcentaje que aplica MercadoPago sobre el monto (ej: 6.38)</div>
                 </div>
 
                 {error && <div className="text-red-500 text-sm">{error}</div>}

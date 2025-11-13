@@ -4,6 +4,7 @@ export interface MercadoPagoConfigPayload {
     accessToken: string;
     publicKey?: string | null;
     sandbox?: boolean;
+    retentionPercent?: number;
 }
 
 export const configService = {
@@ -15,7 +16,8 @@ export const configService = {
         return {
             accessToken: data.accessToken || '',
             publicKey: data.publicKey || null,
-            sandbox: !!data.sandbox
+            sandbox: !!data.sandbox,
+            retentionPercent: Number(data.retentionPercent || 0)
         };
     },
 

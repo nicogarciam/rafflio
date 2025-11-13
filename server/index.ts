@@ -392,7 +392,12 @@ app.get('/api/config/mercadopago', async (req: Request, res: Response) => {
       .single();
     if (error) return res.status(500).json({ error: error.message || error });
     if (!data) return res.json({});
-    res.json({ accessToken: data.access_token, publicKey: data.public_key, sandbox: data.sandbox });
+    res.json({
+      accessToken: data.access_token,
+      publicKey: data.public_key,
+      sandbox: data.sandbox,
+      retentionPercent: Number(data.retention_percent || 0)
+    });
   } catch (err: any) {
     console.error('Error fetching MercadoPago config:', err);
     res.status(500).json({ error: err.message || 'Error fetching config' });
@@ -402,10 +407,15 @@ app.get('/api/config/mercadopago', async (req: Request, res: Response) => {
 // Upsert MercadoPago config (admin use)
 app.post('/api/config/mercadopago', async (req: Request, res: Response) => {
   try {
-    const { accessToken, publicKey, sandbox } = req.body;
+    const { accessToken, publicKey, sandbox, retentionPercent } = req.body;
     if (!accessToken) return res.status(400).json({ error: 'accessToken is required' });
 
-    const payload = { access_token: accessToken, public_key: publicKey || null, sandbox: !!sandbox };
+    const payload = {
+      access_token: accessToken,
+      public_key: publicKey || null,
+      sandbox: !!sandbox,
+      retention_percent: retentionPercent != null ? retentionPercent : 0
+    };
     const { data, error } = await supabase.from('mercadopago_configs').insert([payload]);
     if (error) return res.status(500).json({ error: error.message || error });
 
