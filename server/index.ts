@@ -27,11 +27,43 @@ app.use(cors());
 app.use(express.json());
 const httpServer = createServer(app); // Servidor HTTP para WebSocket
 
-const mercadoPagoClient = new MercadoPagoConfig({
+// MercadoPago client: default from env, but we support loading the config from DB and reloading at runtime
+let mercadoPagoClient = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || 'TEST-4372544405719279-072718-112f9982981a5c01b708c1f17bc9101e-54486551',
   options: { timeout: 5000 }
 });
-const preference = new Preference(mercadoPagoClient);
+let preference = new Preference(mercadoPagoClient);
+
+// Helper: reload MercadoPago client from DB (latest row)
+async function reloadMercadoPagoClientFromDB() {
+  try {
+    const { data, error } = await supabase
+      .from('mercadopago_configs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!error && data && data.access_token) {
+      console.log('Cargando configuración de MercadoPago desde DB');
+      mercadoPagoClient = new MercadoPagoConfig({
+        accessToken: data.access_token,
+        options: { timeout: 5000 }
+      });
+      preference = new Preference(mercadoPagoClient);
+      return true;
+    } else {
+      console.log('No se encontró configuración de MercadoPago en DB, se mantiene la configuración de ENV');
+      return false;
+    }
+  } catch (err) {
+    console.error('Error reloading MercadoPago config from DB:', err);
+    return false;
+  }
+}
+
+// Intenta cargar la configuración desde la DB al arrancar (no bloqueante)
+reloadMercadoPagoClientFromDB().catch(err => console.error('reload error', err));
 
 const supabaseUrl = process.env.SUPABASE_URL || 'https://lekpcbbrmbiltrrgqgmh.supabase.co';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxla3BjYmJybWJpbHRycmdxZ21oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2NTA4NzYsImV4cCI6MjA2OTIyNjg3Nn0.A7Bpmv3PiZG_eh8AQdNGrHSZhO6MDYdLkcKRp03MVtY';
@@ -348,6 +380,45 @@ app.get('/api/test', async (req: Request, res: Response) => {
   res.json({ message: 'API is working!' });
 });
 
+// --- Config endpoints for MercadoPago ---
+// Get latest MercadoPago config
+app.get('/api/config/mercadopago', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('mercadopago_configs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    if (error) return res.status(500).json({ error: error.message || error });
+    if (!data) return res.json({});
+    res.json({ accessToken: data.access_token, publicKey: data.public_key, sandbox: data.sandbox });
+  } catch (err: any) {
+    console.error('Error fetching MercadoPago config:', err);
+    res.status(500).json({ error: err.message || 'Error fetching config' });
+  }
+});
+
+// Upsert MercadoPago config (admin use)
+app.post('/api/config/mercadopago', async (req: Request, res: Response) => {
+  try {
+    const { accessToken, publicKey, sandbox } = req.body;
+    if (!accessToken) return res.status(400).json({ error: 'accessToken is required' });
+
+    const payload = { access_token: accessToken, public_key: publicKey || null, sandbox: !!sandbox };
+    const { data, error } = await supabase.from('mercadopago_configs').insert([payload]);
+    if (error) return res.status(500).json({ error: error.message || error });
+
+    // Reload in-memory client so server uses the new credentials
+    await reloadMercadoPagoClientFromDB();
+
+    res.json({ success: true, data: data?.[0] || null });
+  } catch (err: any) {
+    console.error('Error saving MercadoPago config:', err);
+    res.status(500).json({ error: err.message || 'Error saving config' });
+  }
+});
+
 // Endpoint para generar descripción con IA
 app.post('/api/ai/generate-description', async (req: Request, res: Response) => {
   try {
@@ -591,15 +662,17 @@ app.get('/api/purchases/totals', async (req: Request, res: Response) => {
     }
 
     const totals: Record<string, number> = {};
+    const counts: Record<string, number> = {};
     let totalGeneral = 0;
     (purchases || []).forEach((p: any) => {
       const method = p.payment_method || 'other';
       const amt = Number(p.amount) || 0;
       totals[method] = (totals[method] || 0) + amt;
+      counts[method] = (counts[method] || 0) + 1;
       totalGeneral += amt;
     });
 
-    res.json({ totals, total: totalGeneral });
+    res.json({ totals, counts, total: totalGeneral });
   } catch (err) {
     console.error('Error in /api/purchases/totals:', err);
     res.status(500).json({ error: 'Internal error' });

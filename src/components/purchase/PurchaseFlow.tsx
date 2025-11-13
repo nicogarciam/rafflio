@@ -3,6 +3,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useRaffle } from '../../contexts/RaffleContext';
 import { usePaymentStatus } from '../../hooks/usePaymentStatus';
 import { config } from '../../lib/config';
+import { configService } from '../../services/config.service';
 import { MercadoPagoResponse, mercadoPagoService } from '../../services/mercadopago';
 import { PriceTier, Raffle } from '../../types';
 import { Modal } from '../ui/Modal';
@@ -59,15 +60,22 @@ export const PurchaseFlow: React.FC<PurchaseFlowProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    const mpPublicKey = config.mercadopago.publicKey;
-    if (!window.MercadoPago) {
-      // @ts-ignore
-      if (typeof window !== 'undefined') {
-        import('@mercadopago/sdk-react').then(({ initMercadoPago }) => {
-          initMercadoPago(mpPublicKey, { locale: 'es-AR' });
-        });
+    (async () => {
+      try {
+        const cfg = await configService.getMercadoPagoConfig();
+        const mpPublicKey = cfg?.publicKey || config.mercadopago.publicKey;
+        if (!window.MercadoPago) {
+          // @ts-ignore
+          if (typeof window !== 'undefined') {
+            import('@mercadopago/sdk-react').then(({ initMercadoPago }) => {
+              initMercadoPago(mpPublicKey, { locale: 'es-AR' });
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('No se pudo cargar la clave pública de MercadoPago desde API, usando env si está presente');
       }
-    }
+    })();
   }, []);
 
   // Paso 1: Selección de paquete

@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { purchaseService } from '../services/purchase.service';
 import { ShoppingCart } from 'lucide-react';
 import { config } from '../lib/config';
-import { Info, Edit2, Mail, Link as LinkIcon, SortDesc, SortAsc } from 'lucide-react';
+import { Info, Edit2, Mail, Link as LinkIcon, SortDesc, SortAsc, CreditCard, Wallet, DollarSign } from 'lucide-react';
 import { sendPurchaseLinkEmail, sendConfirmationEmail } from '../services/email.service';
 import { Purchase } from '../types';
 
@@ -177,6 +177,7 @@ export const PurchasesView: React.FC = () => {
   // Totales obtenidos desde el backend (agregados por método de pago)
   const [totalsByMethod, setTotalsByMethod] = useState<Record<string, number>>({});
   const [totalGeneral, setTotalGeneral] = useState<number>(0);
+  const [countsByMethod, setCountsByMethod] = useState<Record<string, number>>({});
   const [loadingTotals, setLoadingTotals] = useState<boolean>(false);
 
   const fetchTotals = async () => {
@@ -189,6 +190,7 @@ export const PurchasesView: React.FC = () => {
       if (!res.ok) throw new Error('Error fetching totals');
       const data = await res.json();
       setTotalsByMethod(data.totals || {});
+      setCountsByMethod(data.counts || {});
       setTotalGeneral(Number(data.total || 0));
     } catch (err) {
       console.error('Error fetching totals:', err);
@@ -199,9 +201,12 @@ export const PurchasesView: React.FC = () => {
     }
   };
 
-  // Recalcular totales cuando cambien filtros relevantes
+  // Recalcular totales cuando cambien filtros relevantes (debounce para evitar ráfagas)
   useEffect(() => {
-    fetchTotals();
+    const timer = setTimeout(() => {
+      fetchTotals();
+    }, 350); // 350ms debounce
+    return () => clearTimeout(timer);
   }, [filters.raffleId, filters.status]);
 
   return (
@@ -385,20 +390,36 @@ export const PurchasesView: React.FC = () => {
       {/* Resumen por método de pago (traído desde el backend) */}
       <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
         <div className="bg-white border rounded p-3">
-          <div className="text-sm text-gray-500">Total MercadoPago</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">Total MercadoPago</div>
+            <ShoppingCart className="w-7 h-7 text-blue-500" />
+          </div>
           <div className="text-lg font-semibold text-blue-700">{loadingTotals ? '...' : (totalsByMethod['mercadopago'] || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
+          <div className="text-xs text-gray-500 mt-1">{loadingTotals ? '' : `${countsByMethod['mercadopago'] || 0} compras`}</div>
         </div>
         <div className="bg-white border rounded p-3">
-          <div className="text-sm text-gray-500">Total Transferencia</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">Total Transferencia</div>
+            <CreditCard className="w-7 h-7 text-yellow-600" />
+          </div>
           <div className="text-lg font-semibold text-yellow-700">{loadingTotals ? '...' : (totalsByMethod['bank_transfer'] || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
+          <div className="text-xs text-gray-500 mt-1">{loadingTotals ? '' : `${countsByMethod['bank_transfer'] || 0} compras`}</div>
         </div>
         <div className="bg-white border rounded p-3">
-          <div className="text-sm text-gray-500">Total Efectivo</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">Total Efectivo</div>
+            <DollarSign className="w-7 h-7 text-green-600" />
+          </div>
           <div className="text-lg font-semibold text-green-700">{loadingTotals ? '...' : (totalsByMethod['cash'] || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
+          <div className="text-xs text-gray-500 mt-1">{loadingTotals ? '' : `${countsByMethod['cash'] || 0} compras`}</div>
         </div>
         <div className="bg-white border rounded p-3">
-          <div className="text-sm text-gray-500">Total General</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">Total General</div>
+            <Wallet className="w-7 h-7 text-gray-700" />
+          </div>
           <div className="text-lg font-semibold text-gray-900">{loadingTotals ? '...' : totalGeneral.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
+          <div className="text-xs text-gray-500 mt-1">{loadingTotals ? '' : `${Object.values(countsByMethod).reduce((s, v) => s + v, 0)} compras`}</div>
         </div>
       </div>
 

@@ -37,10 +37,13 @@ export const AdminDashboard: React.FC = () => {
           <p className="text-gray-600">Gestiona tus bonos de contribución y monitorea las contribuciones</p>
         </div>
 
-        <Button onClick={() => navigate('/admin/raffles/new')}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Bono Contribución
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => navigate('/admin/settings/mercadopago')} variant="outline" size="sm">Config MercadoPago</Button>
+          <Button onClick={() => navigate('/admin/raffles/new')}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Bono Contribución
+          </Button>
+        </div>
       </div>
 
       {/* Statistics Cards */}

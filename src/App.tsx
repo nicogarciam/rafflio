@@ -17,6 +17,7 @@ import { RaffleProvider, useRaffle } from './contexts/RaffleContext';
 import { config } from './lib/config';
 import { Raffle } from './types';
 import AdminUserManagementView from './views/AdminUserManagementView';
+import AdminMercadoPagoSettingsView from './views/AdminMercadoPagoSettingsView';
 import CartPage from './views/CartPage';
 import { PaymentSuccessPage } from './views/PaymentSuccessPage';
 import PurchasesView from './views/PurchasesView';
@@ -91,6 +92,11 @@ const AppContent: React.FC = () => {
           <Route path="/admin/users" element={
             <RequireAuth>
               <AdminUserManagementView />
+            </RequireAuth>
+          } />
+          <Route path="/admin/settings/mercadopago" element={
+            <RequireAuth>
+              <AdminMercadoPagoSettingsView />
             </RequireAuth>
           } />
 
