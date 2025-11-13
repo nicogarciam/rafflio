@@ -54,14 +54,14 @@ export const PurchasesView: React.FC = () => {
     try {
       // Mostrar modal de loading con mensaje apropiado
       if (purchase.tickets.length === purchase.ticketCount) {
-        setEmailLoadingModal({ 
-          isOpen: true, 
-          message: 'Enviando email de confirmación...' 
+        setEmailLoadingModal({
+          isOpen: true,
+          message: 'Enviando email de confirmación...'
         });
       } else {
-        setEmailLoadingModal({ 
-          isOpen: true, 
-          message: 'Enviando enlace por email...' 
+        setEmailLoadingModal({
+          isOpen: true,
+          message: 'Enviando enlace por email...'
         });
       }
 
@@ -174,6 +174,35 @@ export const PurchasesView: React.FC = () => {
 
   // El backend ya filtra y ordena, solo usamos purchases
   const filteredPurchases = purchases;
+  // Totales obtenidos desde el backend (agregados por método de pago)
+  const [totalsByMethod, setTotalsByMethod] = useState<Record<string, number>>({});
+  const [totalGeneral, setTotalGeneral] = useState<number>(0);
+  const [loadingTotals, setLoadingTotals] = useState<boolean>(false);
+
+  const fetchTotals = async () => {
+    try {
+      setLoadingTotals(true);
+      const params = new URLSearchParams();
+      if (filters.raffleId) params.set('raffleId', filters.raffleId);
+      if (filters.status) params.set('status', filters.status);
+      const res = await fetch(`${config.app.apiUrl}/purchases/totals?${params.toString()}`);
+      if (!res.ok) throw new Error('Error fetching totals');
+      const data = await res.json();
+      setTotalsByMethod(data.totals || {});
+      setTotalGeneral(Number(data.total || 0));
+    } catch (err) {
+      console.error('Error fetching totals:', err);
+      setTotalsByMethod({});
+      setTotalGeneral(0);
+    } finally {
+      setLoadingTotals(false);
+    }
+  };
+
+  // Recalcular totales cuando cambien filtros relevantes
+  useEffect(() => {
+    fetchTotals();
+  }, [filters.raffleId, filters.status]);
 
   return (
     <div className="space-y-6">
@@ -203,7 +232,7 @@ export const PurchasesView: React.FC = () => {
           </Button>
         </div>
       </Modal>
-      <Modal isOpen={emailLoadingModal.isOpen} onClose={() => {}} title="Enviando Email" size="sm">
+      <Modal isOpen={emailLoadingModal.isOpen} onClose={() => { }} title="Enviando Email" size="sm">
         <div className="py-8 text-center">
           {/* Icono de email animado */}
           <div className="mb-6 flex justify-center">
@@ -215,17 +244,17 @@ export const PurchasesView: React.FC = () => {
               <div className="absolute top-1/2 -right-4 w-2 h-2 bg-blue-300 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
             </div>
           </div>
-          
+
           {/* Mensaje */}
           <div className="text-lg font-medium text-gray-900 mb-4">
             {emailLoadingModal.message}
           </div>
-          
+
           {/* Spinner de carga */}
           <div className="flex justify-center">
             <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
           </div>
-          
+
           {/* Texto adicional */}
           <div className="text-sm text-gray-600 mt-4">
             Por favor espera mientras se envía el email...
@@ -353,6 +382,26 @@ export const PurchasesView: React.FC = () => {
           Buscar
         </Button>
       </div>
+      {/* Resumen por método de pago (traído desde el backend) */}
+      <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="bg-white border rounded p-3">
+          <div className="text-sm text-gray-500">Total MercadoPago</div>
+          <div className="text-lg font-semibold text-blue-700">{loadingTotals ? '...' : (totalsByMethod['mercadopago'] || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
+        </div>
+        <div className="bg-white border rounded p-3">
+          <div className="text-sm text-gray-500">Total Transferencia</div>
+          <div className="text-lg font-semibold text-yellow-700">{loadingTotals ? '...' : (totalsByMethod['bank_transfer'] || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
+        </div>
+        <div className="bg-white border rounded p-3">
+          <div className="text-sm text-gray-500">Total Efectivo</div>
+          <div className="text-lg font-semibold text-green-700">{loadingTotals ? '...' : (totalsByMethod['cash'] || 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
+        </div>
+        <div className="bg-white border rounded p-3">
+          <div className="text-sm text-gray-500">Total General</div>
+          <div className="text-lg font-semibold text-gray-900">{loadingTotals ? '...' : totalGeneral.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
+        </div>
+      </div>
+
       <div className="overflow-x-auto">
         <div className="min-w-[900px]">
           <div className="grid grid-cols-[1.3fr_1.3fr_0.8fr_0.8fr_1.5fr] gap-2 bg-gray-100 rounded-t-lg px-4 py-2 text-xs font-semibold text-gray-700">
@@ -371,6 +420,7 @@ export const PurchasesView: React.FC = () => {
                 <div>
                   <div className="font-semibold text-gray-900">{purchase.fullName}</div>
                   <div className="text-xs text-gray-600">{purchase.email}</div>
+                  <div className="text-xs text-gray-600">{purchase.phone}</div>
                   <div className="text-xs text-gray-400">{new Date(purchase.createdAt).toLocaleDateString()}</div>
                 </div>
                 {/* Columna 2: Rifa y Paquete */}
@@ -484,6 +534,7 @@ export const PurchasesView: React.FC = () => {
           )}
         </div>
       </div>
+
       {/* Controles de paginación y tamaño de página */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">

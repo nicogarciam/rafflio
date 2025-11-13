@@ -352,13 +352,13 @@ app.get('/api/test', async (req: Request, res: Response) => {
 app.post('/api/ai/generate-description', async (req: Request, res: Response) => {
   try {
     const { prompt, title, currentDescription, prizes, priceTiers } = req.body;
-    
+
     if (!prompt && !title) {
       return res.status(400).json({ error: 'Prompt o título es requerido' });
     }
 
     let result;
-    
+
     if (title) {
       // Usar el método específico para descripciones de rifas
       result = await aiService.generateRaffleDescription({
@@ -371,7 +371,7 @@ app.post('/api/ai/generate-description', async (req: Request, res: Response) => 
       // Usar el método general de generación de texto
       result = await aiService.generateText({ prompt });
     }
-    
+
     if (result.success) {
       res.json({
         success: true,
@@ -385,9 +385,9 @@ app.post('/api/ai/generate-description', async (req: Request, res: Response) => 
     }
   } catch (error: any) {
     console.error('Error generando descripción con IA:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: error.message || 'Error interno del servidor' 
+      error: error.message || 'Error interno del servidor'
     });
   }
 });
@@ -575,4 +575,33 @@ app.post('/api/payment/webhook', async (req: Request, res: Response) => {
 
 httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend HTTPS + WebSocket listening on ${apiUrl}`);
+});
+
+// Endpoint: totales agrupados por método de pago
+app.get('/api/purchases/totals', async (req: Request, res: Response) => {
+  try {
+    const { raffleId, status } = req.query as any;
+    let query = supabase.from('purchases').select('id, amount, payment_method');
+    if (raffleId) query = query.eq('raffle_id', raffleId);
+    if (status) query = query.eq('status', status);
+    const { data: purchases, error } = await query;
+    if (error) {
+      console.error('Error fetching purchases for totals:', error);
+      return res.status(500).json({ error: 'Error fetching purchases' });
+    }
+
+    const totals: Record<string, number> = {};
+    let totalGeneral = 0;
+    (purchases || []).forEach((p: any) => {
+      const method = p.payment_method || 'other';
+      const amt = Number(p.amount) || 0;
+      totals[method] = (totals[method] || 0) + amt;
+      totalGeneral += amt;
+    });
+
+    res.json({ totals, total: totalGeneral });
+  } catch (err) {
+    console.error('Error in /api/purchases/totals:', err);
+    res.status(500).json({ error: 'Internal error' });
+  }
 });
